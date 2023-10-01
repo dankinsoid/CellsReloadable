@@ -58,6 +58,32 @@ public final class UITableViewSource: NSObject, CellsSectionsReloadable {
     }
 }
 
+public extension UITableViewSource {
+    
+    func sectionValues(forSection section: Int) -> CellsSection.Values? {
+        let snapshot = diffableDataSource.snapshot()
+        return snapshot.sectionIdentifiers[safe: section]?.value
+    }
+    
+    func viewCellForRow(at indexPath: IndexPath) -> ViewCell? {
+        let snapshot = diffableDataSource.snapshot()
+        guard let sectionID = snapshot.sectionIdentifiers[safe: indexPath.section] else { return nil }
+        return snapshot.itemIdentifiers(inSection: sectionID)[safe: indexPath.row]?.value
+    }
+    
+    func viewForRow(at indexPath: IndexPath) -> UIView? {
+        (tableView?.cellForRow(at: indexPath) as? AnyTableViewCell)?.cellView
+    }
+    
+    func headerView(forSection section: Int) -> UIView? {
+        (tableView?.headerView(forSection: section) as? AnyTableHeaderFooterView)?.cellView
+    }
+    
+    func footerView(forSection section: Int) -> UIView? {
+        (tableView?.footerView(forSection: section) as? AnyTableHeaderFooterView)?.cellView
+    }
+}
+
 public extension CellsSection.Values {
 
     var footer: ViewCell? {
@@ -82,7 +108,7 @@ extension UITableViewSource: UITableViewDelegate {
         if let method = tableViewDelegate?.tableView(_:heightForRowAt:) {
             return method(tableView, indexPath)
         }
-        guard let cell = viewCell(for: indexPath) else { return tableView.rowHeight }
+        guard let cell = viewCellForRow(at: indexPath) else { return tableView.rowHeight }
         return cell.values.height ?? tableView.rowHeight
     }
 
@@ -90,7 +116,7 @@ extension UITableViewSource: UITableViewDelegate {
         if let method = tableViewDelegate?.tableView(_:viewForHeaderInSection:) {
             return method(tableView, section)
         }
-        guard let section = sectionData(for: section), let header = section.header else { return nil }
+        guard let section = sectionValues(forSection: section), let header = section.header else { return nil }
         return tableView.dequeueReloadReusableHeaderFooterView(with: header)
     }
 
@@ -98,7 +124,7 @@ extension UITableViewSource: UITableViewDelegate {
         if let method = tableViewDelegate?.tableView(_:heightForHeaderInSection:) {
             return method(tableView, section)
         }
-        guard let section = sectionData(for: section), let header = section.header else { return tableView.sectionHeaderHeight }
+        guard let section = sectionValues(forSection: section), let header = section.header else { return tableView.sectionHeaderHeight }
         return header.values.height ?? tableView.sectionHeaderHeight
     }
 
@@ -106,7 +132,7 @@ extension UITableViewSource: UITableViewDelegate {
         if let method = tableViewDelegate?.tableView(_:viewForFooterInSection:) {
             return method(tableView, section)
         }
-        guard let section = sectionData(for: section), let footer = section.footer else { return nil }
+        guard let section = sectionValues(forSection: section), let footer = section.footer else { return nil }
         return tableView.dequeueReloadReusableHeaderFooterView(with: footer)
     }
 
@@ -114,7 +140,7 @@ extension UITableViewSource: UITableViewDelegate {
         if let method = tableViewDelegate?.tableView(_:heightForFooterInSection:) {
             return method(tableView, section)
         }
-        guard let section = sectionData(for: section), let footer = section.footer else { return tableView.sectionFooterHeight }
+        guard let section = sectionValues(forSection: section), let footer = section.footer else { return tableView.sectionFooterHeight }
         return footer.values.height ?? tableView.sectionFooterHeight
     }
 }
@@ -140,7 +166,7 @@ public extension UITableView {
 }
 
 private extension UITableViewSource {
-
+    
     func prepareTableView() {
         guard let tableView else { return }
         if tableView.delegate !== self {
@@ -148,20 +174,9 @@ private extension UITableViewSource {
         }
         tableView.delegate = self
     }
-
+    
     func reloadData(newValue: [CellsSection], completion: (() -> Void)?) {
         diffableDataSource.reload(sections: newValue, completion: completion)
-    }
-
-    func sectionData(for section: Int) -> CellsSection.Values? {
-        let snapshot = diffableDataSource.snapshot()
-        return snapshot.sectionIdentifiers[safe: section]?.value
-    }
-
-    func viewCell(for indexPath: IndexPath) -> ViewCell? {
-        let snapshot = diffableDataSource.snapshot()
-        guard let sectionID = snapshot.sectionIdentifiers[safe: indexPath.section] else { return nil }
-        return snapshot.itemIdentifiers(inSection: sectionID)[safe: indexPath.row]?.value
     }
 }
 
@@ -235,7 +250,7 @@ private extension UITableView {
 
 private final class AnyTableViewCell: UITableViewCell {
 
-    private var cellView: UIView?
+    var cellView: UIView?
 
     func reload(cell: ViewCell) {
         guard cell.typeIdentifier == reuseIdentifier else { return }
@@ -276,7 +291,7 @@ private final class AnyTableViewCell: UITableViewCell {
 
 private final class AnyTableHeaderFooterView: UITableViewHeaderFooterView {
 
-    private var cellView: UIView?
+    var cellView: UIView?
 
     func reload(cell: ViewCell) {
         guard cell.typeIdentifier == reuseIdentifier else { return }

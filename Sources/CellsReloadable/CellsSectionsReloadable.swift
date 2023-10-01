@@ -17,7 +17,7 @@ public extension ViewCellsReloadable where Self: CellsSectionsReloadable {
 
 public extension CellsSectionsReloadable {
 
-    func reloadSections(@CellsSectionsBuilder _ sections: () -> [CellsSection], completion: (() -> Void)? = nil) {
+    func reloadSections(@CellsSectionsBuilder sections: () -> [CellsSection], completion: (() -> Void)? = nil) {
         reload(sections: sections(), completion: completion)
     }
 }

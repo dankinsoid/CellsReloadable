@@ -56,15 +56,19 @@ public final class UICollectionViewSource: NSObject, CellsSectionsReloadable {
 
 public extension UICollectionViewSource {
 
-    func sectionValues(for section: Int) -> CellsSection.Values? {
+    func sectionValues(forSection section: Int) -> CellsSection.Values? {
         let snapshot = diffableDataSource.snapshot()
         return snapshot.sectionIdentifiers[safe: section]?.value
     }
 
-    func viewCell(for indexPath: IndexPath) -> ViewCell? {
+    func viewCellForItem(at indexPath: IndexPath) -> ViewCell? {
         let snapshot = diffableDataSource.snapshot()
         guard let sectionID = snapshot.sectionIdentifiers[safe: indexPath.section] else { return nil }
         return snapshot.itemIdentifiers(inSection: sectionID)[safe: indexPath.row]?.value
+    }
+    
+    func viewForItem(at indexPath: IndexPath) -> UIView? {
+        (collectionView?.cellForItem(at: indexPath) as? AnyCollectionViewCell)?.cellView
     }
 }
 
@@ -82,7 +86,7 @@ extension UICollectionViewSource: UICollectionViewDelegateFlowLayout {
         }
 
         let originalSize = (collectionViewLayout as? UICollectionViewFlowLayout)?.itemSize ?? .zero
-        guard let viewCell = viewCell(for: indexPath) else { return originalSize }
+        guard let viewCell = viewCellForItem(at: indexPath) else { return originalSize }
         return viewCell.values.size(collectionView.frame.size) ?? originalSize
     }
 
@@ -92,7 +96,7 @@ extension UICollectionViewSource: UICollectionViewDelegateFlowLayout {
         forItemAt indexPath: IndexPath
     ) {
         collectionViewDelegate?.collectionView?(collectionView, willDisplay: cell, forItemAt: indexPath)
-        viewCell(for: indexPath)?.values.onWillDisplay()
+        viewCellForItem(at: indexPath)?.values.onWillDisplay()
     }
 
     public func collectionView(
@@ -101,12 +105,12 @@ extension UICollectionViewSource: UICollectionViewDelegateFlowLayout {
         forItemAt indexPath: IndexPath
     ) {
         collectionViewDelegate?.collectionView?(collectionView, didEndDisplaying: cell, forItemAt: indexPath)
-        viewCell(for: indexPath)?.values.onDidEndDisplaying()
+        viewCellForItem(at: indexPath)?.values.onDidEndDisplaying()
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionViewDelegate?.collectionView?(collectionView, didSelectItemAt: indexPath)
-        viewCell(for: indexPath)?.values.onDidSelect()
+        viewCellForItem(at: indexPath)?.values.onDidSelect()
     }
 }
 
@@ -192,7 +196,7 @@ extension UniquelyCollectionDiffableDataSource where ItemIdentifierType == ViewC
 
 private final class AnyCollectionViewCell: UICollectionViewCell {
 
-    private var cellView: UIView?
+    var cellView: UIView?
 
     func reload(cell: ViewCell) {
         guard cell.typeIdentifier == reuseIdentifier else { return }
