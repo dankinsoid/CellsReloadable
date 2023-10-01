@@ -47,10 +47,12 @@ dataSource.reload {
   for item in myData {
     switch item.type {
     case let .swiftUICell(props):
-      SomeSwiftUIView(props)
+      ViewCell(id: props.id) {
+        SomeSwiftUIView(props)
+      }
 
     case let .uiKitUICell(props):
-      ViewCell {
+      ViewCell(id: props.id) {
         MyCustomUIView()
       } render: {
         $0.render(with: props)
