@@ -9,33 +9,30 @@ import UIKit
 ///
 public final class UITableViewSource: NSObject, CellsSectionsReloadable {
 
-    public var defaultRawAnimation: UITableView.RowAnimation = .automatic {
-        didSet {
-            configureAnimation()
-        }
+    public var defaultRowAnimation: UITableView.RowAnimation {
+        get { diffableDataSource.defaultRowAnimation }
+        set { diffableDataSource.defaultRowAnimation = newValue }
     }
 
-    public weak var tableView: UITableView? {
-        didSet {
-            guard let tableView, tableView !== oldValue else { return }
-            prepareTableView()
-        }
-    }
-
+    private(set) public weak var tableView: UITableView?
     public weak var tableViewDelegate: UITableViewDelegate?
-    private var diffableDataSource: UniquelyTableDiffableDataSource<CellsSection.Values, ViewCell>?
+    
+    private let diffableDataSource: UniquelyTableDiffableDataSource<CellsSection.Values, ViewCell>
 
-    public convenience init(
+    public init(
+        _ tableView: UITableView,
         animation: UITableView.RowAnimation = .automatic,
         delegate: UITableViewDelegate? = nil
     ) {
-        self.init()
-        defaultRawAnimation = animation
+        diffableDataSource = UniquelyTableDiffableDataSource(tableView)
         tableViewDelegate = delegate
+        super.init()
+        defaultRowAnimation = animation
+        prepareTableView()
     }
 
     public func sections() -> [CellsSection] {
-        diffableDataSource?.snapshot().sections() ?? []
+        diffableDataSource.snapshot().sections()
     }
 
     public func reloadData() {
@@ -124,25 +121,6 @@ extension UITableViewSource: UITableViewDelegate {
 
 public extension UITableView {
 
-    convenience init(
-        _ source: UITableViewSource
-    ) {
-        self.init()
-        rowHeight = UITableView.automaticDimension
-        sectionFooterHeight = 0.001
-        sectionHeaderHeight = 0.001
-        separatorColor = .clear
-        source.tableView = self
-    }
-
-    convenience init(
-        _ source: UITableViewSource,
-        @CellsSectionsBuilder sections: () -> [CellsSection]
-    ) {
-        self.init(source)
-        source.reloadSections(sections)
-    }
-
     func dequeueReloadReusableCell(with item: ViewCell, for indexPath: IndexPath) -> UITableViewCell {
         registerIfNeeded(cell: item)
         guard let cellView = dequeueReusableCell(withIdentifier: item.typeIdentifier, for: indexPath) as? AnyTableViewCell else {
@@ -165,30 +143,22 @@ private extension UITableViewSource {
 
     func prepareTableView() {
         guard let tableView else { return }
-        diffableDataSource = UniquelyTableDiffableDataSource(tableView)
         if tableView.delegate !== self {
             tableViewDelegate = tableView.delegate
         }
         tableView.delegate = self
-        configureAnimation()
     }
 
     func reloadData(newValue: [CellsSection], completion: (() -> Void)?) {
-        diffableDataSource?.reload(sections: newValue, completion: completion)
-    }
-
-    func configureAnimation() {
-        diffableDataSource?.defaultRowAnimation = defaultRawAnimation
+        diffableDataSource.reload(sections: newValue, completion: completion)
     }
 
     func sectionData(for section: Int) -> CellsSection.Values? {
-        guard let diffableDataSource else { return nil }
         let snapshot = diffableDataSource.snapshot()
         return snapshot.sectionIdentifiers[safe: section]?.value
     }
 
     func viewCell(for indexPath: IndexPath) -> ViewCell? {
-        guard let diffableDataSource else { return nil }
         let snapshot = diffableDataSource.snapshot()
         guard let sectionID = snapshot.sectionIdentifiers[safe: indexPath.section] else { return nil }
         return snapshot.itemIdentifiers(inSection: sectionID)[safe: indexPath.row]?.value

@@ -8,27 +8,27 @@ import UIKit
 /// It's recommend to use `Identifiable` items for correct animations.
 public final class UICollectionViewSource: NSObject, CellsSectionsReloadable {
 
-    public var isAnimated = true
-
-    public weak var collectionView: UICollectionView? {
-        didSet {
-            guard let collectionView, collectionView !== oldValue else { return }
-            prepareCollectionView()
-        }
-    }
-
+    public var isAnimated: Bool
+    private(set) public weak var collectionView: UICollectionView?
     public weak var collectionViewDelegate: UICollectionViewDelegate?
 
-    private var diffableDataSource: UniquelyCollectionDiffableDataSource<CellsSection.Values, ViewCell>?
+    private let diffableDataSource: UniquelyCollectionDiffableDataSource<CellsSection.Values, ViewCell>
 
-    public convenience init(isAnimated: Bool = true, delegate: UICollectionViewDelegate? = nil) {
-        self.init()
+    public init(
+        _ collectionView: UICollectionView,
+        isAnimated: Bool = true,
+        delegate: UICollectionViewDelegate? = nil
+    ) {
         self.isAnimated = isAnimated
+        self.collectionView = collectionView
+        diffableDataSource = UniquelyCollectionDiffableDataSource(collectionView)
+        super.init()
         collectionViewDelegate = delegate
+        prepareCollectionView()
     }
 
     public func sections() -> [CellsSection] {
-        diffableDataSource?.snapshot().sections() ?? []
+        diffableDataSource.snapshot().sections()
     }
 
     public func reloadData() {
@@ -57,13 +57,11 @@ public final class UICollectionViewSource: NSObject, CellsSectionsReloadable {
 public extension UICollectionViewSource {
 
     func sectionValues(for section: Int) -> CellsSection.Values? {
-        guard let diffableDataSource else { return nil }
         let snapshot = diffableDataSource.snapshot()
         return snapshot.sectionIdentifiers[safe: section]?.value
     }
 
     func viewCell(for indexPath: IndexPath) -> ViewCell? {
-        guard let diffableDataSource else { return nil }
         let snapshot = diffableDataSource.snapshot()
         guard let sectionID = snapshot.sectionIdentifiers[safe: indexPath.section] else { return nil }
         return snapshot.itemIdentifiers(inSection: sectionID)[safe: indexPath.row]?.value
@@ -122,21 +120,6 @@ public extension ViewCell.Values {
 
 public extension UICollectionView {
 
-    convenience init(
-        _ source: UICollectionViewSource
-    ) {
-        self.init()
-        source.collectionView = self
-    }
-
-    convenience init(
-        _ source: UICollectionViewSource,
-        @CellsSectionsBuilder sections: () -> [CellsSection]
-    ) {
-        self.init(source)
-        source.reloadSections(sections)
-    }
-
     func dequeueReloadReusableCell(with item: ViewCell, for indexPath: IndexPath) -> UICollectionViewCell {
         registerIfNeeded(cell: item)
         guard let cellView = dequeueReusableCell(withReuseIdentifier: item.typeIdentifier, for: indexPath) as? AnyCollectionViewCell else {
@@ -151,7 +134,6 @@ private extension UICollectionViewSource {
 
     func prepareCollectionView() {
         guard let collectionView else { return }
-        diffableDataSource = UniquelyCollectionDiffableDataSource(collectionView)
         if collectionView.delegate !== self {
             collectionViewDelegate = collectionView.delegate
         }
@@ -159,7 +141,6 @@ private extension UICollectionViewSource {
     }
 
     func reloadData(newValue: [CellsSection], completion: (() -> Void)? = nil) {
-        guard let diffableDataSource else { return }
         let snapshot = UniqueDiffableDataSourceSnapshot<CellsSection.Values, ViewCell>()
         snapshot.reload(sections: newValue, completion: nil)
         diffableDataSource.apply(snapshot, animatingDifferences: isAnimated, completion: completion)
