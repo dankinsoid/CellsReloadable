@@ -4,18 +4,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "${NAME}",
+    name: "CellsReloadable",
     platforms: [
         .iOS(.v13),
     ],
     products: [
-        .library(name: "${NAME}", targets: ["${NAME}"]),
+        .library(name: "CellsReloadable", targets: ["CellsReloadable"]),
     ],
     dependencies: [
     ],
     targets: [
         .target(
-            name: "${NAME}",
+            name: "CellsReloadable",
             dependencies: [
             ]
         )

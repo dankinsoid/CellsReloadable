@@ -1,9 +1,9 @@
-# ${NAME}
+# CellsReloadable
 
-[![CI Status](https://img.shields.io/travis/dankinsoid/${NAME}.svg?style=flat)](https://travis-ci.org/dankinsoid/${NAME})
-[![Version](https://img.shields.io/cocoapods/v/${NAME}.svg?style=flat)](https://cocoapods.org/pods/${NAME})
-[![License](https://img.shields.io/cocoapods/l/${NAME}.svg?style=flat)](https://cocoapods.org/pods/${NAME})
-[![Platform](https://img.shields.io/cocoapods/p/${NAME}.svg?style=flat)](https://cocoapods.org/pods/${NAME})
+[![CI Status](https://img.shields.io/travis/dankinsoid/CellsReloadable.svg?style=flat)](https://travis-ci.org/dankinsoid/CellsReloadable)
+[![Version](https://img.shields.io/cocoapods/v/CellsReloadable.svg?style=flat)](https://cocoapods.org/pods/CellsReloadable)
+[![License](https://img.shields.io/cocoapods/l/CellsReloadable.svg?style=flat)](https://cocoapods.org/pods/CellsReloadable)
+[![Platform](https://img.shields.io/cocoapods/p/CellsReloadable.svg?style=flat)](https://cocoapods.org/pods/CellsReloadable)
 
 
 ## Description
@@ -29,10 +29,10 @@ import PackageDescription
 let package = Package(
   name: "SomeProject",
   dependencies: [
-    .package(url: "https://github.com/dankinsoid/${NAME}.git", from: "0.0.1")
+    .package(url: "https://github.com/dankinsoid/CellsReloadable.git", from: "0.0.1")
   ],
   targets: [
-    .target(name: "SomeProject", dependencies: ["${NAME}"])
+    .target(name: "SomeProject", dependencies: ["CellsReloadable"])
   ]
 )
 ```
@@ -44,9 +44,9 @@ $ swift build
 
 Add the following line to your Podfile:
 ```ruby
-pod '${NAME}'
+pod 'CellsReloadable'
 ```
-and run `pod update` from the podfile directory first.
+and run `pod render` from the podfile directory first.
 
 ## Author
 
@@ -54,4 +54,4 @@ dankinsoid, voidilov@gmail.com
 
 ## License
 
-${NAME} is available under the MIT license. See the LICENSE file for more info.
+CellsReloadable is available under the MIT license. See the LICENSE file for more info.
