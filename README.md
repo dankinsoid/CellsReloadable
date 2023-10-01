@@ -1,8 +1,88 @@
 # CellsReloadable
 
+CellsReloadable revolutionizes how you interact with table, collection, and stack views in iOS. Say goodbye to the cumbersome process of subclassing `UITableViewCell` or `UICollectionViewCell`. This library offers a seamless method to reload your views, empowering you to use direct `UIView` or SwiftUI `View` instances. Streamline your UI implementation and enjoy a cleaner, more efficient approach with CellsReloadable.
+
+## Some code examples
+- Reload with homogeneous array and homogeneous `UIView` cells:
+```swift
+dataSource.reload(with: myData) { _ in
+    MyCustomUIView()
+} render: { view, data in
+    view.render(with: data)
+}
+```
+- Reload with homogeneous array and homogeneous `View` cells:
+```swift
+dataSource.reload(with: myData) { data in
+    MyCustomSwiftUIView(data)
+}
+```
+- Reload with array and homogeneous `RenderableView`:
+```swift
+dataSource.reload(with: myData) { props in
+    MyCustomRenderableView(props)
+}
+```
+- Reload with static cells:
+```swift
+dataSource.reload {
+  ViewCell {
+    MyCustomUIView()
+  } update: { view in
+    view.render(with: props)
+  }
+  if someCondition {
+    ViewCell {
+      MyCustomSwiftUIView()
+    }
+  }
+  ViewCell {
+    MyCustomUIView()
+  }
+}
+```
+- Reload with array and heterogeneous cells:
+```swift
+dataSource.reload {
+  for item in myData {
+    switch item.type {
+    case let .swiftUICell(props):
+      SomeSwiftUIView(props)
+
+    case let .uiKitUICell(props):
+      ViewCell {
+        MyCustomUIView()
+      } render: {
+        $0.render(with: props)
+      }
+      .with(\.height, 72)
+    }
+  }
+}
+```
+- Reload sections:
+```swift
+dataSource.reloadSections {
+  CellsSection(data: myData) { _ in
+    MyCustomRenderableView()
+  }
+  .cellsWith(\.height, 72)
+
+  CellsSection(data: myData) {
+    SomeSwiftUIView($0)
+  }
+  .with(
+    \.header,
+    ViewCell {
+      Text("Header").padding()
+    }
+  )
+}
+```
+
 ## Description
 
-This extension provides reloadable functionality for `UITableView`, `UIStackView`, and `UICollectionView`. 
+This library provides reloadable functionality for `UITableView`, `UIStackView`, and `UICollectionView`.
 
 It introduces several types:
 - **`ViewCell`**: An identifiable struct to represent a cell within a view.
