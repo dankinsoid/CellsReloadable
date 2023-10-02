@@ -5,7 +5,7 @@ CellsReloadable revolutionizes how you interact with table, collection, and stac
 ## Some code examples
 - Reload with array and homogeneous `UIView` cells:
 ```swift
-dataSource.reload(with: myData) { _ in
+reloader.reload(with: myData) { _ in
     MyCustomUIView()
 } render: { view, data in
     view.render(with: data)
@@ -13,19 +13,19 @@ dataSource.reload(with: myData) { _ in
 ```
 - Reload with array and homogeneous `View` cells:
 ```swift
-dataSource.reload(with: myData) { data in
+reloader.reload(with: myData) { data in
     MyCustomSwiftUIView(data)
 }
 ```
 - Reload with array and homogeneous `RenderableView`:
 ```swift
-dataSource.reload(with: myData) { props in
+reloader.reload(with: myData) { props in
     MyCustomRenderableView(props)
 }
 ```
 - Reload with static cells:
 ```swift
-dataSource.reload {
+reloader.reload {
   ViewCell {
     MyCustomUIView()
   } update: { view in
@@ -43,7 +43,7 @@ dataSource.reload {
 ```
 - Reload with array and heterogeneous cells:
 ```swift
-dataSource.reload {
+reloader.reload {
   for item in myData {
     switch item.type {
     case let .swiftUICell(props):
@@ -64,7 +64,7 @@ dataSource.reload {
 ```
 - Reload sections:
 ```swift
-dataSource.reloadSections {
+reloader.reloadSections {
   CellsSection(data: myData) { _ in
     MyCustomRenderableView()
   }
