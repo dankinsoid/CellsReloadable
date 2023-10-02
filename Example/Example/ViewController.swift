@@ -46,7 +46,6 @@ class ViewController: UIViewController {
     @objc
     func reload() {
         let array = (0..<Int.random(in: 4...20)).map { UIKitCustomCell.Props($0) }.shuffled()
-        reloader.defaultRowAnimation = .leading
         reloader.reloadSections {
             CellsSection {
                 SwiftUICell()

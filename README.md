@@ -222,14 +222,6 @@ let package = Package(
 $ swift build
 ```
 
-2.  [CocoaPods](https://cocoapods.org)
-
-Add the following line to your Podfile:
-```ruby
-pod 'CellsReloadable'
-```
-and run `pod update` from the podfile directory first.
-
 ## Author
 
 dankinsoid, voidilov@gmail.com

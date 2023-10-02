@@ -286,7 +286,6 @@ private extension UITableViewReloader {
         case .none: return .none
         case .middle: return .middle
         case .automatic: return .automatic
-        @unknown default: return .automatic
         }
     }
 }
