@@ -9,9 +9,9 @@ import UIKit
 ///
 public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
 
-    public var defaultRowAnimation: UITableView.RowAnimation {
-        get { diffableDataSource.defaultRowAnimation }
-        set { diffableDataSource.defaultRowAnimation = newValue }
+    public var defaultRowAnimation: UITableView.DirectionalRowAnimation {
+        get { directionalRowAnimation(for: diffableDataSource.defaultRowAnimation) }
+        set { diffableDataSource.defaultRowAnimation = rowAnimation(for: newValue) }
     }
 
     private(set) public weak var tableView: UITableView?
@@ -21,7 +21,7 @@ public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
 
     public init(
         _ tableView: UITableView,
-        animation: UITableView.RowAnimation = .automatic,
+        animation: UITableView.DirectionalRowAnimation = .automatic,
         delegate: UITableViewDelegate? = nil
     ) {
         self.tableView = tableView
@@ -234,6 +234,18 @@ public extension UITableView {
         anyHeaderFooter.reload(cell: item)
         return anyHeaderFooter
     }
+    
+    enum DirectionalRowAnimation: Int, @unchecked Sendable {
+        
+        case fade = 0
+        case trailing = 1
+        case leading = 2
+        case top = 3
+        case bottom = 4
+        case none = 5
+        case middle = 6
+        case automatic = 100
+    }
 }
 
 private extension UITableViewReloader {
@@ -248,6 +260,34 @@ private extension UITableViewReloader {
     
     func reloadData(newValue: [CellsSection], completion: (() -> Void)?) {
         diffableDataSource.reload(sections: newValue, completion: completion)
+    }
+    
+    func directionalRowAnimation(for animation: UITableView.RowAnimation) -> UITableView.DirectionalRowAnimation {
+        switch animation {
+        case .fade: return .fade
+        case .right: return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .leading : .trailing
+        case .left:  return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .trailing : .leading
+        case .top: return .top
+        case .bottom: return .bottom
+        case .none: return .none
+        case .middle: return .middle
+        case .automatic: return .automatic
+        @unknown default: return .automatic
+        }
+    }
+    
+    func rowAnimation(for animation: UITableView.DirectionalRowAnimation) -> UITableView.RowAnimation {
+        switch animation {
+        case .fade: return .fade
+        case .trailing: return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .left : .right
+        case .leading:  return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .right : .left
+        case .top: return .top
+        case .bottom: return .bottom
+        case .none: return .none
+        case .middle: return .middle
+        case .automatic: return .automatic
+        @unknown default: return .automatic
+        }
     }
 }
 

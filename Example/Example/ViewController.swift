@@ -5,6 +5,7 @@ class ViewController: UIViewController {
 
     let tableView = UITableView(frame: .zero, style: .grouped)
     lazy var reloader = UITableViewReloader(tableView)
+    let stackView = UIStackView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,6 +19,16 @@ class ViewController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
         ])
+        
+//        stackView.axis = .vertical
+//        view.addSubview(stackView)
+//        stackView.translatesAutoresizingMaskIntoConstraints = false
+//        NSLayoutConstraint.activate([
+//            stackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+//            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+//            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+//        ])
+        
         let button = UIButton(type: .roundedRect)
         button.setTitle("Reload", for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -34,7 +45,8 @@ class ViewController: UIViewController {
     
     @objc
     func reload() {
-        let array = (0..<20).map { UIKitCustomCell.Props($0) }.shuffled()
+        let array = (0..<Int.random(in: 4...20)).map { UIKitCustomCell.Props($0) }.shuffled()
+        reloader.defaultRowAnimation = .leading
         reloader.reloadSections {
             CellsSection {
                 SwiftUICell()
@@ -57,6 +69,7 @@ final class UIKitCustomCell: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             label.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 0),
+            label.heightAnchor.constraint(lessThanOrEqualTo: heightAnchor, constant: -20),
             label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
         ])

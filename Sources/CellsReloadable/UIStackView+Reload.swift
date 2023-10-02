@@ -23,6 +23,7 @@ extension UIStackView: ViewCellsReloadable {
         subviews.forEach {
             $0.removeFromSuperview()
         }
+        layoutIfNeeded()
         completion?()
     }
 
