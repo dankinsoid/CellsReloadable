@@ -1,6 +1,6 @@
 # CellsReloadable
 
-CellsReloadable revolutionizes how you interact with table, collection, and stack views in iOS. Say goodbye to the cumbersome process of subclassing `UITableViewCell` or `UICollectionViewCell`. This library offers a seamless method to reload your views, empowering you to use direct `UIView` or SwiftUI `View` instances. Streamline your UI implementation and enjoy a cleaner, more efficient approach with CellsReloadable.
+CellsReloadable provides a streamlined approach to managing table, collection, and stack views in iOS. By eliminating the need for subclassing `UITableViewCell` or `UICollectionViewCell`, the library facilitates a more straightforward process for reloading views. With CellsReloadable, developers can directly use `UIView` or SwiftUI `View` instances, leading to a more modular and efficient UI implementation.
 
 ## Some code examples
 - Reload with array and homogeneous `UIView` cells:
