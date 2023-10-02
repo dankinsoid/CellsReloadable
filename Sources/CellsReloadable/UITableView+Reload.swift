@@ -1,13 +1,13 @@
 import UIKit
 
-/// ```UITableViewSource``` is a class that eliminates the need to work with the traditional datasource.
+/// ```UITableViewReloader``` is a class that eliminates the need to work with the traditional datasource.
 /// It allows you to directly deal with the data and the cell that should be displayed.
 /// With this feature, you don't have to subclass `UITableViewCell`.
 /// Instead, you can directly use `UIView` instances and make your codebase simpler and cleaner.
 ///
 /// It's recommend to use `Identifiable` items for correct animations.
 ///
-public final class UITableViewSource: NSObject, CellsSectionsReloadable {
+public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
 
     public var defaultRowAnimation: UITableView.RowAnimation {
         get { diffableDataSource.defaultRowAnimation }
@@ -24,6 +24,7 @@ public final class UITableViewSource: NSObject, CellsSectionsReloadable {
         animation: UITableView.RowAnimation = .automatic,
         delegate: UITableViewDelegate? = nil
     ) {
+        self.tableView = tableView
         diffableDataSource = UniquelyTableDiffableDataSource(tableView)
         tableViewDelegate = delegate
         super.init()
@@ -58,7 +59,7 @@ public final class UITableViewSource: NSObject, CellsSectionsReloadable {
     }
 }
 
-public extension UITableViewSource {
+public extension UITableViewReloader {
     
     func sectionValues(forSection section: Int) -> CellsSection.Values? {
         let snapshot = diffableDataSource.snapshot()
@@ -86,23 +87,60 @@ public extension UITableViewSource {
 
 public extension CellsSection.Values {
 
+    /// The header of the section.
     var footer: ViewCell? {
         self[\.footer] ?? nil
     }
 
+    /// The footer of the section.
     var header: ViewCell? {
         self[\.header] ?? nil
     }
 }
 
-public extension ViewCell.Values {
-
-    var height: CGFloat? {
-        self[\.height] ?? nil
+public extension CellsSection {
+    
+    /// Creates a new instance of `CellsSection` with footer.
+    func footer(_ footer: some ViewCellConvertible) -> Self {
+        with(\.footer, footer.asViewCell)
+    }
+    
+    /// Creates a new instance of `CellsSection` with header.
+    func header(_ header: some ViewCellConvertible) -> Self {
+        with(\.header, header.asViewCell)
     }
 }
 
-extension UITableViewSource: UITableViewDelegate {
+public extension ViewCell.Values {
+    
+    /// The height of the cell.
+    var height: CGFloat? {
+        self[\.height] ?? nil
+    }
+    
+    /// The action to perform when the cell is selected.
+    var didSelect: () -> Void {
+        self[\.didSelect] ?? {}
+    }
+    
+    var willDisplay: () -> Void { self[\.willDisplay] ?? {} }
+    var didEndDisplaying: () -> Void { self[\.didEndDisplaying] ?? {} }
+}
+
+public extension ViewCell {
+    
+    /// Creates a new instance of `ViewCell` with row height.
+    func height(_ height: CGFloat) -> Self {
+        with(\.height, height)
+    }
+    
+    /// Creates a new instance of `ViewCell` with didSelect action.
+    func didSelect(_ didSelect: @escaping () -> Void) -> Self {
+        with(\.didSelect, didSelect)
+    }
+}
+
+extension UITableViewReloader: UITableViewDelegate {
 
     public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         if let method = tableViewDelegate?.tableView(_:heightForRowAt:) {
@@ -124,7 +162,13 @@ extension UITableViewSource: UITableViewDelegate {
         if let method = tableViewDelegate?.tableView(_:heightForHeaderInSection:) {
             return method(tableView, section)
         }
-        guard let section = sectionValues(forSection: section), let header = section.header else { return tableView.sectionHeaderHeight }
+        guard let section = sectionValues(forSection: section), let header = section.header else {
+            if tableView.sectionHeaderHeight == UITableView.automaticDimension {
+                return 0.001
+            } else {
+                return tableView.sectionHeaderHeight
+            }
+        }
         return header.values.height ?? tableView.sectionHeaderHeight
     }
 
@@ -140,8 +184,35 @@ extension UITableViewSource: UITableViewDelegate {
         if let method = tableViewDelegate?.tableView(_:heightForFooterInSection:) {
             return method(tableView, section)
         }
-        guard let section = sectionValues(forSection: section), let footer = section.footer else { return tableView.sectionFooterHeight }
+        guard let section = sectionValues(forSection: section), let footer = section.footer else {
+            if tableView.sectionFooterHeight == UITableView.automaticDimension {
+                return 0.001
+            } else {
+                return tableView.sectionFooterHeight
+            }
+        }
         return footer.values.height ?? tableView.sectionFooterHeight
+    }
+    
+    public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if let method = tableViewDelegate?.tableView(_:didSelectRowAt:) {
+            method(tableView, indexPath)
+        }
+        viewCellForRow(at: indexPath)?.values.didSelect()
+    }
+    
+    public func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if let method = tableViewDelegate?.tableView(_:willDisplay:forRowAt:) {
+            method(tableView, cell, indexPath)
+        }
+        viewCellForRow(at: indexPath)?.values.willDisplay()
+    }
+    
+    public func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if let method = tableViewDelegate?.tableView(_:didEndDisplaying:forRowAt:) {
+            method(tableView, cell, indexPath)
+        }
+        viewCellForRow(at: indexPath)?.values.didEndDisplaying()
     }
 }
 
@@ -165,7 +236,7 @@ public extension UITableView {
     }
 }
 
-private extension UITableViewSource {
+private extension UITableViewReloader {
     
     func prepareTableView() {
         guard let tableView else { return }
@@ -200,7 +271,7 @@ extension UniquelyTableDiffableDataSource where ItemIdentifierType == ViewCell {
     }
 }
 
-public extension NSDiffableDataSourceSnapshot<HashableByID<CellsSection.Values, AnyHashable>, HashableByID<ViewCell, AnyHashable>> {
+extension NSDiffableDataSourceSnapshot<HashableByID<CellsSection.Values, AnyHashable>, HashableByID<ViewCell, AnyHashable>> {
 
     func sections() -> [CellsSection] {
         sectionIdentifiers.map {

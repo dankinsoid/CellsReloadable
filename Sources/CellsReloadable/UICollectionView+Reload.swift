@@ -1,12 +1,12 @@
 import UIKit
 
-/// ```UICollectionViewSource``` is a class that eliminates the need to work with the traditional datasource.
+/// ```UICollectionViewReloader``` is a class that eliminates the need to work with the traditional datasource.
 /// It allows you to directly deal with the data and the cell that should be displayed.
 /// With this feature, you don't have to subclass `UICollectionViewCell`.
 /// Instead, you can directly use `UIView` instances and make your codebase simpler and cleaner.
 ///
 /// It's recommend to use `Identifiable` items for correct animations.
-public final class UICollectionViewSource: NSObject, CellsSectionsReloadable {
+public final class UICollectionViewReloader: NSObject, CellsSectionsReloadable {
 
     public var isAnimated: Bool
     private(set) public weak var collectionView: UICollectionView?
@@ -54,7 +54,7 @@ public final class UICollectionViewSource: NSObject, CellsSectionsReloadable {
     }
 }
 
-public extension UICollectionViewSource {
+public extension UICollectionViewReloader {
 
     func sectionValues(forSection section: Int) -> CellsSection.Values? {
         let snapshot = diffableDataSource.snapshot()
@@ -72,7 +72,7 @@ public extension UICollectionViewSource {
     }
 }
 
-extension UICollectionViewSource: UICollectionViewDelegateFlowLayout {
+extension UICollectionViewReloader: UICollectionViewDelegateFlowLayout {
 
     public func collectionView(
         _ collectionView: UICollectionView,
@@ -96,7 +96,7 @@ extension UICollectionViewSource: UICollectionViewDelegateFlowLayout {
         forItemAt indexPath: IndexPath
     ) {
         collectionViewDelegate?.collectionView?(collectionView, willDisplay: cell, forItemAt: indexPath)
-        viewCellForItem(at: indexPath)?.values.onWillDisplay()
+        viewCellForItem(at: indexPath)?.values.willDisplay()
     }
 
     public func collectionView(
@@ -105,21 +105,18 @@ extension UICollectionViewSource: UICollectionViewDelegateFlowLayout {
         forItemAt indexPath: IndexPath
     ) {
         collectionViewDelegate?.collectionView?(collectionView, didEndDisplaying: cell, forItemAt: indexPath)
-        viewCellForItem(at: indexPath)?.values.onDidEndDisplaying()
+        viewCellForItem(at: indexPath)?.values.didEndDisplaying()
     }
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionViewDelegate?.collectionView?(collectionView, didSelectItemAt: indexPath)
-        viewCellForItem(at: indexPath)?.values.onDidSelect()
+        viewCellForItem(at: indexPath)?.values.didSelect()
     }
 }
 
 public extension ViewCell.Values {
 
     var size: (CGSize) -> CGSize? { self[\.size] ?? { _ in nil } }
-    var onWillDisplay: () -> Void { self[\.onWillDisplay] ?? {} }
-    var onDidEndDisplaying: () -> Void { self[\.onDidEndDisplaying] ?? {} }
-    var onDidSelect: () -> Void { self[\.onDidSelect] ?? {} }
 }
 
 public extension UICollectionView {
@@ -134,7 +131,7 @@ public extension UICollectionView {
     }
 }
 
-private extension UICollectionViewSource {
+private extension UICollectionViewReloader {
 
     func prepareCollectionView() {
         guard let collectionView else { return }

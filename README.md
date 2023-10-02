@@ -86,12 +86,12 @@ This library provides reloadable functionality for `UITableView`, `UIStackView`,
 
 It introduces several types:
 - **`ViewCell`**: An identifiable struct to represent a cell within a view.
-- [**`UITableViewSource`**](#uitableviewsource): A class to bypass the traditional datasource methods when working with a `UITableView`.
-- [**`UICollectionViewSource`**](#uicollectionviewsource): A class to bypass the traditional datasource methods when working with a `UICollectionView`.
-- **`ViewCellsReloadable`**: A protocol to mark a view as having reloadable cells. Implemented by `UITableViewSource`, `UIStackView`, and `UICollectionViewSource`.
+- [**`UITableViewReloader`**](#UITableViewReloader): A class to bypass the traditional datasource methods when working with a `UITableView`.
+- [**`UICollectionViewReloader`**](#UICollectionViewReloader): A class to bypass the traditional datasource methods when working with a `UICollectionView`.
+- **`ViewCellsReloadable`**: A protocol to mark a view as having reloadable cells. Implemented by `UITableViewReloader`, `UIStackView`, and `UICollectionViewReloader`.
 - [**`ViewCellConvertible`**](#ViewCellConvertible): An Identifiable struct to represent a cell within a view.
 - **`ViewCellsBuilder`**: An enum to assist in building cells.
-- **`CellsSectionsReloadable`**: A protocol for views that have reloadable sections. Implemented by `UITableViewSource`, `UICollectionViewSource` and `UIStackView`.
+- **`CellsSectionsReloadable`**: A protocol for views that have reloadable sections. Implemented by `UITableViewReloader`, `UICollectionViewReloader` and `UIStackView`.
 - **`CellsSection`**: An identifiable struct to represent a section of cells.
 - [**`CellsSectionConvertable`**](#CellsSectionConvertable): A protocol to convert custom structs into `CellsSection` structures.
 - **`CellsSectionsBuilder`**: An enum to aid in building sections of cells.
@@ -108,14 +108,14 @@ Here are some of the functionalities provided:
 
 These `reload` functions use a variety of parameters to control the reloading of the cells in the view. By utilizing these functions, you can easily manage the cells within your views and ensure they are always up-to-date.
 
-## UITableViewSource
+## UITableViewReloader
 
-`UITableViewSource` is a class that eliminates the need to work with the traditional datasource. It allows you to directly deal with the data and the cell that should be displayed. With this feature, you don't have to subclass `UITableViewCell`. Instead, you can directly use `UIView` instances and make your codebase simpler and cleaner.
+`UITableViewReloader` is a class that eliminates the need to work with the traditional datasource. It allows you to directly deal with the data and the cell that should be displayed. With this feature, you don't have to subclass `UITableViewCell`. Instead, you can directly use `UIView` instances and make your codebase simpler and cleaner.
 
 Here’s an example:
 
 ```swift
-lazy var tableSource = UITableViewSource(tableView)
+lazy var tableSource = UITableViewReloader(tableView)
 let tableView = UITableView()
 
 tableSource.reload(with: myData) { _ in
@@ -128,14 +128,14 @@ tableSource.reload(with: myData) { _ in
 It's recommend to make items `Identifiable` for correct animations.
 This significantly reduces the boilerplate code traditionally associated with setting up table views.
 
-## UICollectionViewSource
+## UICollectionViewReloader
 
-Similar to `UITableViewSource`, `UICollectionViewSource` is an extension that allows you to bypass the traditional datasource and delegate methods when working with a `UICollectionView`. You don't have to subclass `UICollectionViewCell`. You can directly use `UIView` instances and simply bind them to the data you want to display.
+Similar to `UITableViewReloader`, `UICollectionViewReloader` is an extension that allows you to bypass the traditional datasource and delegate methods when working with a `UICollectionView`. You don't have to subclass `UICollectionViewCell`. You can directly use `UIView` instances and simply bind them to the data you want to display.
 
 Here’s an example:
 
 ```swift
-lazy var collectionSource = UICollectionViewSource(collectionView)
+lazy var collectionSource = UICollectionViewReloader(collectionView)
 let collectionView = UICollectionView()
 
 collectionSource.reload(with: myData) { _ in
@@ -195,7 +195,7 @@ Similar to the `ViewCellConvertible` protocol, the `CellsSectionConvertible` pro
 
 The `ReusableView` protocol is introduced to streamline the process of preparing views for reuse, especially in the context of `UITableView` and `UICollectionView`.\
 Views that adopt this protocol need to implement the `prepareForReuse()` method. This method should reset the view to its default state and clear out any data or configurations that were set for the previous content.\
-For `UICollectionView` there is a native `UICollectionReusableView` that can be used as well in `UICollectionViewSource`.
+For `UICollectionView` there is a native `UICollectionReusableView` that can be used as well in `UICollectionViewReloader`.
 
 ## Installation
 
