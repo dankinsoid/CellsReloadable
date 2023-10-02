@@ -3,7 +3,7 @@
 CellsReloadable revolutionizes how you interact with table, collection, and stack views in iOS. Say goodbye to the cumbersome process of subclassing `UITableViewCell` or `UICollectionViewCell`. This library offers a seamless method to reload your views, empowering you to use direct `UIView` or SwiftUI `View` instances. Streamline your UI implementation and enjoy a cleaner, more efficient approach with CellsReloadable.
 
 ## Some code examples
-- Reload with homogeneous array and homogeneous `UIView` cells:
+- Reload with array and homogeneous `UIView` cells:
 ```swift
 dataSource.reload(with: myData) { _ in
     MyCustomUIView()
@@ -11,7 +11,7 @@ dataSource.reload(with: myData) { _ in
     view.render(with: data)
 }
 ```
-- Reload with homogeneous array and homogeneous `View` cells:
+- Reload with array and homogeneous `View` cells:
 ```swift
 dataSource.reload(with: myData) { data in
     MyCustomSwiftUIView(data)
@@ -47,10 +47,12 @@ dataSource.reload {
   for item in myData {
     switch item.type {
     case let .swiftUICell(props):
-      SomeSwiftUIView(props)
+      ViewCell(id: props.id) {
+        SomeSwiftUIView(props)
+      }
 
     case let .uiKitUICell(props):
-      ViewCell {
+      ViewCell(id: props.id) {
         MyCustomUIView()
       } render: {
         $0.render(with: props)
