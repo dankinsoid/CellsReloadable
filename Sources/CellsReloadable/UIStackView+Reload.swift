@@ -15,7 +15,7 @@ extension UIStackView: ViewCellsReloadable {
                 cell.reloadView(subview)
             } else {
                 let subview = cell.createView()
-                subview.accessibilityIdentifier = cell.id
+                subview.stackID = cell.id
                 addArrangedSubview(subview)
                 cell.reloadView(subview)
             }
@@ -29,7 +29,7 @@ extension UIStackView: ViewCellsReloadable {
 
     private func firstMatch(for cell: ViewCell, subviews: [UIView]) -> Int? {
         let result = subviews.firstIndex {
-            $0.accessibilityIdentifier == cell.id
+            $0.stackID == cell.id
         }
         return result ?? subviews.firstIndex {
             cell.type == type(of: $0)
@@ -86,6 +86,28 @@ extension CellsSection.Values {
         public var cornerRadius: CGFloat?
         
         public init() {
+        }
+    }
+}
+
+private extension UIView {
+    
+    enum AssociatedKeys {
+        
+        static var stackID = "stackID"
+    }
+    
+    var stackID: String? {
+        get {
+            objc_getAssociatedObject(self, &AssociatedKeys.stackID) as? String
+        }
+        set {
+            objc_setAssociatedObject(
+                self,
+                &AssociatedKeys.stackID,
+                newValue,
+                .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+            )
         }
     }
 }
