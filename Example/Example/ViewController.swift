@@ -6,19 +6,38 @@ class ViewController: UIViewController {
     let tableView = UITableView(frame: .zero, style: .grouped)
     lazy var reloader = UITableViewReloader(tableView)
     let stackView = UIStackView()
+    let collection = CollectionView()
+    let layoutView = UILayoutView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.addSubview(tableView)
-        tableView.separatorStyle = .none
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-        ])
+//        view.addSubview(tableView)
+//        tableView.separatorStyle = .none
+//        tableView.rowHeight = UITableView.automaticDimension
+//        tableView.translatesAutoresizingMaskIntoConstraints = false
+//        NSLayoutConstraint.activate([
+//            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+//            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+//            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+//            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+//        ])
+        
+//        view.addSubview(collection)
+//        collection.translatesAutoresizingMaskIntoConstraints = false
+//        NSLayoutConstraint.activate([
+//            collection.topAnchor.constraint(equalTo: view.topAnchor),
+//            collection.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+//            collection.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+//            collection.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+//        ])
+        
+        view.addSubview(layoutView)
+        layoutView.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    layoutView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                    layoutView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                ])
+        
         
 //        stackView.axis = .vertical
 //        view.addSubview(stackView)
@@ -45,15 +64,34 @@ class ViewController: UIViewController {
     
     @objc
     func reload() {
-        let array = (0..<Int.random(in: 4...20)).map { UIKitCustomCell.Props($0) }.shuffled()
-        reloader.reloadSections {
-            CellsSection {
-                SwiftUICell()
+        UIView.animate(withDuration: 0.3) { [self] in
+            layoutView.reload {
+                HLayout {
+                    for i in (0..<5).shuffled() {
+                        ViewCell(id: "\(i)") {
+                            UIKitCustomCell()
+                        } render: { cell in
+                            cell.label.text = "Item \(i)"
+                        }
+                    }
+                    HLayout(spacing: 10) {
+                        ViewCell(id: "AlmostLast") {
+                            UIKitCustomCell()
+                        } render: { cell in
+                            cell.label.text = "Prelast item"
+                        }
+                        Spacing().size(width: 30)
+                        ViewCell(id: "Last") {
+                            UIKitCustomCell()
+                        } render: { cell in
+                            cell.label.text = "Last item"
+                        }
+                    }
+                    .background {
+                        ColorLayout(id: "Color Last", .green)
+                    }
+                }
             }
-            CellsSection(id: "array", data: array) { _ in
-                UIKitCustomCell()
-            }
-            .cellsWith(\.height, 50)
         }
     }
 }
