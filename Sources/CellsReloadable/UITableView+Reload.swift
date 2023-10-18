@@ -76,6 +76,26 @@ public extension UITableViewReloader {
         (tableView?.cellForRow(at: indexPath) as? AnyTableViewCell)?.cellView
     }
     
+    func viewForRow(with id: String) -> UIView? {
+        guard let indexPath = indexPath(with: id) else {
+            return nil
+        }
+        return viewForRow(at: indexPath)
+    }
+    
+    func viewCellForRow(with id: String) -> ViewCell? {
+        guard let indexPath = indexPath(with: id) else {
+            return nil
+        }
+        return viewCellForRow(at: indexPath)
+    }
+    
+    func indexPath(with id: String) -> IndexPath? {
+        diffableDataSource.indexPath(
+            for: HashableByID(ViewCell { UIView() }) { _ in id }
+        )
+    }
+    
     func headerView(forSection section: Int) -> UIView? {
         (tableView?.headerView(forSection: section) as? AnyTableHeaderFooterView)?.cellView
     }

@@ -54,6 +54,13 @@ public final class UICollectionViewReloader: NSObject, CellsSectionsReloadable {
     }
 }
 
+public extension UICollectionView {
+    
+    var reloader: UICollectionViewReloader? {
+        delegate as? UICollectionViewReloader
+    }
+}
+
 public extension UICollectionViewReloader {
 
     func sectionValues(forSection section: Int) -> CellsSection.Values? {
@@ -69,6 +76,26 @@ public extension UICollectionViewReloader {
     
     func viewForItem(at indexPath: IndexPath) -> UIView? {
         (collectionView?.cellForItem(at: indexPath) as? AnyCollectionViewCell)?.cellView
+    }
+    
+    func viewForItem(with id: String) -> UIView? {
+        guard let indexPath = indexPath(with: id) else {
+            return nil
+        }
+        return viewForItem(at: indexPath)
+    }
+    
+    func viewCellForItem(with id: String) -> ViewCell? {
+        guard let indexPath = indexPath(with: id) else {
+            return nil
+        }
+        return viewCellForItem(at: indexPath)
+    }
+    
+    func indexPath(with id: String) -> IndexPath? {
+        diffableDataSource.indexPath(
+            for: HashableByID(ViewCell { UIView() }) { _ in id }
+        )
     }
 }
 
