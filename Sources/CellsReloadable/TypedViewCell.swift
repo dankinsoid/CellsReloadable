@@ -1,34 +1,38 @@
 import UIKit
+import Carbon
 
 /// ViewCell helper struct with view generic, available through `Cell` typealias.
 ///
 /// ```
 ///  SomeView.Cell(with: props)
 /// ```
-public struct TypedViewCell<Cell: UIView>: ViewCellConvertible, Identifiable {
+public struct TypedViewCell<Content: UIView>: Identifiable, IdentifiableComponent {
 
     public var id: AnyHashable
-    public let render: (Cell) -> Void
+    public let render: (Content) -> Void
 
     public init(
-        id: AnyHashable = NoneID(),
-        render: @escaping (Cell) -> Void = { _ in }
+        id: AnyHashable,
+        render: @escaping (Content) -> Void = { _ in }
     ) {
         self.id = id
         self.render = render
     }
-
-    public var asViewCell: ViewCell {
-        ViewCell(id: id, create: Cell.init, render: render)
+    
+    public func renderContent() -> Content {
+        Content()
+    }
+    
+    public func render(in content: Content) {
+        render(content)
     }
 }
 
-public extension TypedViewCell where Cell: RenderableView {
+public extension TypedViewCell where Content: RenderableView {
 
-    @_disfavoredOverload
     init(
-        id: AnyHashable = NoneID(),
-        with props: Cell.Props
+        id: AnyHashable,
+        with props: Content.Props
     ) {
         self.init(id: id) {
             $0.render(with: props)
@@ -36,10 +40,10 @@ public extension TypedViewCell where Cell: RenderableView {
     }
 }
 
-public extension TypedViewCell where Cell: RenderableView, Cell.Props: Identifiable {
+public extension TypedViewCell where Content: RenderableView, Content.Props: Identifiable {
 
     init(
-        with props: Cell.Props
+        with props: Content.Props
     ) {
         self.init(id: props.id) {
             $0.render(with: props)

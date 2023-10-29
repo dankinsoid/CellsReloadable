@@ -12,11 +12,13 @@ let package = Package(
         .library(name: "CellsReloadable", targets: ["CellsReloadable"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/ra1028/Carbon.git", from: "1.0.0-rc.6")
     ],
     targets: [
         .target(
             name: "CellsReloadable",
             dependencies: [
+                "Carbon"
             ]
         )
     ]

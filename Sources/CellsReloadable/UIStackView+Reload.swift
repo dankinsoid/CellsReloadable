@@ -1,4 +1,26 @@
 import UIKit
+import Carbon
+
+open class UIStackViewAdapter: Adapter {
+    
+    public var data: [Carbon.Section]
+    
+    public init(data: [Carbon.Section] = []) {
+        self.data = data
+    }
+}
+
+public final class UIStackViewUpdater<Adapter: UIStackViewAdapter>: Updater {
+    
+    public typealias Target = UIStackView
+    public typealias Adapter = UIStackViewAdapter
+    
+    public func prepare(target: UIStackView, adapter: UIStackViewAdapter) {
+    }
+    
+    public func performUpdates(target: UIStackView, adapter: UIStackViewAdapter, data: [Carbon.Section]) {
+    }
+}
 
 extension UIStackView: ViewCellsReloadable {
 
