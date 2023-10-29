@@ -27,6 +27,18 @@ public extension ViewCellsReloadable {
     /// Reloads the collection view with the specified cells.
     ///
     /// - Parameters:
+    ///   - data: The collection of ```ViewCellConvertible``` items.
+    ///   - completion: The block to execute after the reload operation completes.
+    func reload<Data: Collection>(with cells: Data, completion: (() -> Void)? = nil) where Data.Element: ViewCellConvertible {
+        reload(
+            cells: (cells as? [ViewCell]) ?? cells.map(\.asViewCell),
+            completion: completion
+        )
+    }
+
+    /// Reloads the collection view with the specified cells.
+    ///
+    /// - Parameters:
     ///   - data: The unidentified data used for reloading, with item indices serving as IDs.
     ///   - create: The block to create the cell view for each data item.
     ///   - render: The block to render the cell view with data item.
@@ -36,17 +48,18 @@ public extension ViewCellsReloadable {
         with data: Data,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void,
-        map: (ViewCell) -> ViewCell = { $0 },
+        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
         reload(
-            cells: data.enumerated().map { index, data in
+            cells: data.map { data in
                 map(
-                    ViewCell(id: "\(index)") {
+                    ViewCell {
                         create(data)
                     } render: {
                         render($0, data)
-                    }
+                    },
+                    data
                 )
             },
             completion: completion
@@ -62,22 +75,23 @@ public extension ViewCellsReloadable {
     ///   - render: The block to render the cell view with data item.
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
-    func reload<Data: Collection, ID: CustomStringConvertible, Cell: UIView>(
+    func reload<Data: Collection, ID: Hashable, Cell: UIView>(
         with data: Data,
         id: (Data.Element) -> ID,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void,
-        map: (ViewCell) -> ViewCell = { $0 },
+        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
         reload(
             cells: data.map { data in
                 map(
-                    ViewCell(id: id(data).description) {
+                    ViewCell(id: id(data)) {
                         create(data)
                     } render: {
                         render($0, data)
-                    }
+                    },
+                    data
                 )
             },
             completion: completion
@@ -92,16 +106,16 @@ public extension ViewCellsReloadable {
     ///   - render: The block to render the cell view with data item.
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
-    func reload<Data: Collection, ID: Hashable & CustomStringConvertible, Cell: UIView>(
+    func reload<Data: Collection, ID: Hashable, Cell: UIView>(
         with data: Data,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void,
-        map: (ViewCell) -> ViewCell = { $0 },
+        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) where Data.Element: Identifiable<ID> {
         reload(
             with: data,
-            id: \.id.description,
+            id: \.id,
             create: create,
             render: render,
             map: map,
@@ -119,21 +133,20 @@ public extension ViewCellsReloadable {
     ///   - create: The block to create the cell view for each data item.
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
-    func reload<Data: Collection, Cell: View>(
+    func reload<Data: Collection>(
         with data: Data,
-        @ViewBuilder create: @escaping (Data.Element) -> Cell,
-        map: (ViewCell) -> ViewCell = { $0 },
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
+        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
-        reload(with: data) {
-            HostingView(create($0))
-        } render: {
-            $0.rootView = create($1)
-        } map: {
-            map($0)
-        } completion: {
-            completion?()
-        }
+        reload(
+            with: data.flatMap { props in
+                create(props).map {
+                    map($0, props)
+                }
+            },
+            completion: completion
+        )
     }
 
     /// Reloads the collection view with the specified cells.
@@ -144,22 +157,21 @@ public extension ViewCellsReloadable {
     ///   - create: The block to create the cell view for each data item.
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
-    func reload<Data: Collection, ID: CustomStringConvertible, Cell: View>(
+    func reload<Data: Collection, ID: Hashable>(
         with data: Data,
         id: (Data.Element) -> ID,
-        @ViewBuilder create: @escaping (Data.Element) -> Cell,
-        map: (ViewCell) -> ViewCell = { $0 },
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
+        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
-        reload(with: data, id: id) {
-            HostingView(create($0))
-        } render: {
-            $0.rootView = create($1)
-        } map: {
-            map($0)
-        } completion: {
-            completion?()
-        }
+        reload(
+            with: data,
+            create: create,
+            map: { cell, props in
+                cell.updateIDIfNeeded(id: id(props))
+            },
+            completion: completion
+        )
     }
 
     /// Reloads the collection view with the specified cells.
@@ -169,21 +181,19 @@ public extension ViewCellsReloadable {
     ///   - create: The block to create the cell view for each data item.
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
-    func reload<Data: Collection, ID: Hashable & CustomStringConvertible, Cell: View>(
+    func reload<Data: Collection, ID: Hashable>(
         with data: Data,
-        @ViewBuilder create: @escaping (Data.Element) -> Cell,
-        map: (ViewCell) -> ViewCell = { $0 },
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
+        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) where Data.Element: Identifiable<ID> {
-        reload(with: data) {
-            HostingView(create($0))
-        } render: {
-            $0.rootView = create($1)
-        } map: {
-            map($0)
-        } completion: {
-            completion?()
-        }
+        reload(
+            with: data,
+            id: \.id,
+            create: create,
+            map: map,
+            completion: completion
+        )
     }
 }
 
@@ -198,16 +208,16 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Cell: RenderableView>(
         with data: some Collection<Cell.Props>,
-        create: @escaping (Cell.Props) -> Cell,
-        map: (ViewCell) -> ViewCell = { $0 },
+        create: @escaping () -> Cell,
+        map: (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
-        reload(with: data) {
-            create($0)
+        reload(with: data) { _ in
+            create()
         } render: {
             $0.render(with: $1)
         } map: {
-            map($0)
+            map($0, $1)
         } completion: {
             completion?()
         }
@@ -221,19 +231,19 @@ public extension ViewCellsReloadable {
     ///   - create: The block to create the cell view for each data item.
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
-    func reload<ID: CustomStringConvertible, Cell: RenderableView>(
+    func reload<ID: Hashable, Cell: RenderableView>(
         with data: some Collection<Cell.Props>,
         id: (Cell.Props) -> ID,
-        create: @escaping (Cell.Props) -> Cell,
-        map: (ViewCell) -> ViewCell = { $0 },
+        create: @escaping () -> Cell,
+        map: (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
-        reload(with: data, id: id) {
-            create($0)
+        reload(with: data, id: id) { _ in
+            create()
         } render: {
             $0.render(with: $1)
         } map: {
-            map($0)
+            map($0, $1)
         } completion: {
             completion?()
         }
@@ -246,18 +256,18 @@ public extension ViewCellsReloadable {
     ///   - create: The block to create the cell view for each data item.
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
-    func reload<ID: Hashable & CustomStringConvertible, Cell: RenderableView>(
+    func reload<ID: Hashable, Cell: RenderableView>(
         with data: some Collection<Cell.Props>,
-        create: @escaping (Cell.Props) -> Cell,
-        map: (ViewCell) -> ViewCell = { $0 },
+        create: @escaping () -> Cell,
+        map: (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) where Cell.Props: Identifiable<ID> {
-        reload(with: data) {
-            create($0)
+        reload(with: data) { _ in
+            create()
         } render: {
             $0.render(with: $1)
         } map: {
-            map($0)
+            map($0, $1)
         } completion: {
             completion?()
         }

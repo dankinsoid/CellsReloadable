@@ -10,33 +10,35 @@ import UIKit
 public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
 
     public var defaultRowAnimation: UITableView.DirectionalRowAnimation {
-        get { directionalRowAnimation(for: diffableDataSource.defaultRowAnimation) }
-        set { diffableDataSource.defaultRowAnimation = rowAnimation(for: newValue) }
+        didSet {
+            diffableDataSource?.defaultRowAnimation = rowAnimation(for: defaultRowAnimation)
+            configureDataSource()
+        }
     }
 
-    private(set) public weak var tableView: UITableView?
+    public private(set) var sections: [CellsSection] = []
+
+    public private(set) weak var tableView: UITableView?
     public weak var tableViewDelegate: UITableViewDelegate?
-    
-    private let diffableDataSource: UniquelyTableDiffableDataSource<CellsSection.Values, ViewCell>
+
+    private var isFirstReload = true
+    private var cellsByID: [AnyHashable: ViewCell] = [:]
+    private var diffableDataSource: UniquelyTableDiffableDataSource<AnyHashable, ViewCell>?
 
     public init(
         _ tableView: UITableView,
-        animation: UITableView.DirectionalRowAnimation = .automatic,
+        animation: UITableView.DirectionalRowAnimation = .none,
         delegate: UITableViewDelegate? = nil
     ) {
         self.tableView = tableView
-        diffableDataSource = UniquelyTableDiffableDataSource(tableView)
         tableViewDelegate = delegate
-        super.init()
         defaultRowAnimation = animation
+        super.init()
         prepareTableView()
     }
 
-    public func sections() -> [CellsSection] {
-        diffableDataSource.snapshot().sections()
-    }
-
     public func reloadData() {
+        defer { isFirstReload = false }
         tableView?.reloadData()
     }
 
@@ -44,6 +46,7 @@ public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
         reloadData(newValue: sections, completion: completion)
     }
 
+    // swiftlint:disable implicitly_unwrapped_optional
     public override func responds(to aSelector: Selector!) -> Bool {
         if super.responds(to: aSelector) {
             return true
@@ -60,103 +63,94 @@ public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
 }
 
 public extension UITableViewReloader {
-    
+
     func sectionValues(forSection section: Int) -> CellsSection.Values? {
-        let snapshot = diffableDataSource.snapshot()
-        return snapshot.sectionIdentifiers[safe: section]?.value
+        sections[safe: section]?.values
     }
-    
+
     func viewCellForRow(at indexPath: IndexPath) -> ViewCell? {
-        let snapshot = diffableDataSource.snapshot()
-        guard let sectionID = snapshot.sectionIdentifiers[safe: indexPath.section] else { return nil }
-        return snapshot.itemIdentifiers(inSection: sectionID)[safe: indexPath.row]?.value
+        sections[safe: indexPath.section]?.cells[safe: indexPath.row]
     }
-    
+
     func viewForRow(at indexPath: IndexPath) -> UIView? {
         (tableView?.cellForRow(at: indexPath) as? AnyTableViewCell)?.cellView
     }
-    
-    func viewForRow(with id: String) -> UIView? {
+
+    func viewForRow(with id: AnyHashable) -> UIView? {
         guard let indexPath = indexPath(with: id) else {
             return nil
         }
         return viewForRow(at: indexPath)
     }
-    
-    func viewCellForRow(with id: String) -> ViewCell? {
+
+    func viewCellForRow(with id: AnyHashable) -> ViewCell? {
         guard let indexPath = indexPath(with: id) else {
             return nil
         }
         return viewCellForRow(at: indexPath)
     }
-    
-    func indexPath(with id: String) -> IndexPath? {
-        diffableDataSource.indexPath(
-            for: HashableByID(ViewCell { UIView() }) { _ in id }
+
+    func indexPath(with id: AnyHashable) -> IndexPath? {
+        diffableDataSource?.indexPath(
+            for: HashableByID(ViewCell(id: id) { UIView() }, id: \.id)
         )
     }
-    
+
     func headerView(forSection section: Int) -> UIView? {
         (tableView?.headerView(forSection: section) as? AnyTableHeaderFooterView)?.cellView
     }
-    
+
     func footerView(forSection section: Int) -> UIView? {
         (tableView?.footerView(forSection: section) as? AnyTableHeaderFooterView)?.cellView
     }
+
+    var visibleViews: [UIView] {
+        tableView?.visibleCells.compactMap { ($0 as? AnyTableViewCell)?.cellView } ?? []
+    }
 }
 
+// swiftlint:disable redundant_nil_coalescing
 public extension CellsSection.Values {
 
     /// The header of the section.
     var footer: ViewCell? {
-        self[\.footer] ?? nil
+        get { self[\.footer] ?? nil }
+        set { self[\.footer] = newValue }
     }
 
     /// The footer of the section.
     var header: ViewCell? {
-        self[\.header] ?? nil
+        get { self[\.header] ?? nil }
+        set { self[\.header] = newValue }
     }
 }
 
 public extension CellsSection {
-    
+
     /// Creates a new instance of `CellsSection` with footer.
-    func footer(_ footer: some ViewCellConvertible) -> Self {
-        with(\.footer, footer.asViewCell)
+    func footer(@SingleViewCellBuilder _ footer: () -> ViewCell) -> Self {
+        with(\.footer, footer())
     }
-    
+
     /// Creates a new instance of `CellsSection` with header.
-    func header(_ header: some ViewCellConvertible) -> Self {
-        with(\.header, header.asViewCell)
+    func header(@SingleViewCellBuilder _ header: () -> ViewCell) -> Self {
+        with(\.header, header())
     }
 }
 
-public extension ViewCell.Values {
-    
-    /// The height of the cell.
-    var height: CGFloat? {
-        self[\.height] ?? nil
-    }
-    
-    /// The action to perform when the cell is selected.
-    var didSelect: () -> Void {
-        self[\.didSelect] ?? {}
-    }
-    
-    var willDisplay: () -> Void { self[\.willDisplay] ?? {} }
-    var didEndDisplaying: () -> Void { self[\.didEndDisplaying] ?? {} }
-}
+extension UITableViewReloader: UITableViewDataSource {
 
-public extension ViewCell {
-    
-    /// Creates a new instance of `ViewCell` with row height.
-    func height(_ height: CGFloat) -> Self {
-        with(\.height, height)
+    public func numberOfSections(in tableView: UITableView) -> Int {
+        sections.count
     }
-    
-    /// Creates a new instance of `ViewCell` with didSelect action.
-    func didSelect(_ didSelect: @escaping () -> Void) -> Self {
-        with(\.didSelect, didSelect)
+
+    public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        sections[section].cells.count
+    }
+
+    public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = sections[indexPath.section].cells[indexPath.row]
+        return tableView.dequeueReloadReusableCell(with: cell, for: indexPath)
     }
 }
 
@@ -184,7 +178,7 @@ extension UITableViewReloader: UITableViewDelegate {
         }
         guard let section = sectionValues(forSection: section), let header = section.header else {
             if tableView.sectionHeaderHeight == UITableView.automaticDimension {
-                return 0.001
+                return .leastNormalMagnitude
             } else {
                 return tableView.sectionHeaderHeight
             }
@@ -206,28 +200,28 @@ extension UITableViewReloader: UITableViewDelegate {
         }
         guard let section = sectionValues(forSection: section), let footer = section.footer else {
             if tableView.sectionFooterHeight == UITableView.automaticDimension {
-                return 0.001
+                return .leastNormalMagnitude
             } else {
                 return tableView.sectionFooterHeight
             }
         }
         return footer.values.height ?? tableView.sectionFooterHeight
     }
-    
+
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if let method = tableViewDelegate?.tableView(_:didSelectRowAt:) {
             method(tableView, indexPath)
         }
         viewCellForRow(at: indexPath)?.values.didSelect()
     }
-    
+
     public func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         if let method = tableViewDelegate?.tableView(_:willDisplay:forRowAt:) {
             method(tableView, cell, indexPath)
         }
         viewCellForRow(at: indexPath)?.values.willDisplay()
     }
-    
+
     public func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         if let method = tableViewDelegate?.tableView(_:didEndDisplaying:forRowAt:) {
             method(tableView, cell, indexPath)
@@ -254,9 +248,9 @@ public extension UITableView {
         anyHeaderFooter.reload(cell: item)
         return anyHeaderFooter
     }
-    
+
     enum DirectionalRowAnimation: Int, @unchecked Sendable {
-        
+
         case fade = 0
         case trailing = 1
         case leading = 2
@@ -269,24 +263,60 @@ public extension UITableView {
 }
 
 private extension UITableViewReloader {
-    
+
     func prepareTableView() {
         guard let tableView else { return }
         if tableView.delegate !== self {
             tableViewDelegate = tableView.delegate
         }
         tableView.delegate = self
+        configureDataSource()
     }
-    
+
     func reloadData(newValue: [CellsSection], completion: (() -> Void)?) {
-        diffableDataSource.reload(sections: newValue, completion: completion)
+        defer { isFirstReload = false }
+        sections = newValue
+        guard let diffableDataSource else {
+            reloadData()
+            return
+        }
+
+        let snapshot = UniqueDiffableDataSourceSnapshot<AnyHashable, ViewCell>()
+        snapshot.appendSections(newValue.map(\.id))
+        for section in newValue {
+            snapshot.appendItems(section.cells, toSection: section.id)
+        }
+        cellsByID = Dictionary(sections.flatMap { $0.cells.map { ($0.id, $0) } }) { _, new in new }
+        let isAnimated = defaultRowAnimation != .none && !isFirstReload && !snapshot.hasDuplicatedKeys
+        if #available(iOS 15.0, *), !isAnimated {
+            diffableDataSource.applySnapshotUsingReloadData(snapshot.snapshot, completion: completion)
+        } else {
+            diffableDataSource.apply(snapshot, animatingDifferences: isAnimated, completion: completion)
+        }
     }
-    
+
+    func configureDataSource() {
+        if defaultRowAnimation != .none {
+            createDataSourceIfNeeded()
+        } else if diffableDataSource == nil {
+            tableView?.dataSource = self
+        }
+    }
+
+    func createDataSourceIfNeeded() {
+        guard let tableView, diffableDataSource == nil else { return }
+        diffableDataSource = UniquelyTableDiffableDataSource(tableView: tableView) { [weak self] tableView, indexPath, cell in
+            let newCell = self?.cellsByID[cell.id] ?? self?.sections[safe: indexPath.section]?.cells[safe: indexPath.row] ?? cell
+            return tableView.dequeueReloadReusableCell(with: newCell, for: indexPath)
+        }
+        diffableDataSource?.defaultRowAnimation = rowAnimation(for: defaultRowAnimation)
+    }
+
     func directionalRowAnimation(for animation: UITableView.RowAnimation) -> UITableView.DirectionalRowAnimation {
         switch animation {
         case .fade: return .fade
         case .right: return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .leading : .trailing
-        case .left:  return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .trailing : .leading
+        case .left: return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .trailing : .leading
         case .top: return .top
         case .bottom: return .bottom
         case .none: return .none
@@ -295,46 +325,17 @@ private extension UITableViewReloader {
         @unknown default: return .automatic
         }
     }
-    
+
     func rowAnimation(for animation: UITableView.DirectionalRowAnimation) -> UITableView.RowAnimation {
         switch animation {
         case .fade: return .fade
         case .trailing: return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .left : .right
-        case .leading:  return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .right : .left
+        case .leading: return tableView?.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .right : .left
         case .top: return .top
         case .bottom: return .bottom
         case .none: return .none
         case .middle: return .middle
         case .automatic: return .automatic
-        }
-    }
-}
-
-extension UniquelyTableDiffableDataSource<CellsSection.Values, ViewCell>: ViewCellsReloadable {}
-
-extension UniquelyTableDiffableDataSource<CellsSection.Values, ViewCell>: CellsSectionsReloadable {
-
-    func reload(sections: [CellsSection], completion: (() -> Void)?) {
-        let snapshot = UniqueDiffableDataSourceSnapshot<CellsSection.Values, ViewCell>()
-        snapshot.reload(sections: sections, completion: nil)
-        apply(snapshot, animatingDifferences: defaultRowAnimation != .none, completion: completion)
-    }
-}
-
-extension UniquelyTableDiffableDataSource where ItemIdentifierType == ViewCell {
-
-    convenience init(_ tableView: UITableView) {
-        self.init(tableView: tableView) { tableView, indexPath, cell in
-            tableView.dequeueReloadReusableCell(with: cell, for: indexPath)
-        }
-    }
-}
-
-extension NSDiffableDataSourceSnapshot<HashableByID<CellsSection.Values, AnyHashable>, HashableByID<ViewCell, AnyHashable>> {
-
-    func sections() -> [CellsSection] {
-        sectionIdentifiers.map {
-            CellsSection(values: $0.value, cells: itemIdentifiers(inSection: $0).map(\.value))
         }
     }
 }
@@ -373,17 +374,29 @@ private extension UITableView {
 
     enum AssociatedKeys {
 
-        static var registeredICellsIDsKey = "registeredICellsIDsKey"
-        static var registeredIFootersHeadersIDsKey = "registeredIFootersHeadersIDsKey"
+        static var registeredICellsIDsKey = 0
+        static var registeredIFootersHeadersIDsKey = 1
     }
 }
 
 private final class AnyTableViewCell: UITableViewCell {
 
     var cellView: UIView?
+    var onReuse: (UIView) -> Void = { _ in }
+    var onHighlight: (UIView, Bool) -> Void = { _, _ in }
+
+    override var isHighlighted: Bool {
+        didSet {
+            if let cellView {
+                onHighlight(cellView, isHighlighted)
+            }
+        }
+    }
 
     func reload(cell: ViewCell) {
         guard cell.typeIdentifier == reuseIdentifier else { return }
+        onReuse = cell.values.willReuse
+        onHighlight = cell.values.didHighlight
         let view: UIView
         if let cellView {
             view = cellView
@@ -408,12 +421,14 @@ private final class AnyTableViewCell: UITableViewCell {
         view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor).isActive = true
         view.topAnchor.constraint(equalTo: contentView.topAnchor).isActive = true
         view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor).isActive = true
-    
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        if let reusableView = cellView as? ReusableView {
+        if let cellView {
+            onReuse(cellView)
+        }
+        if let reusableView = cellView as? UICollectionReusableView {
             reusableView.prepareForReuse()
         }
     }
@@ -422,9 +437,11 @@ private final class AnyTableViewCell: UITableViewCell {
 private final class AnyTableHeaderFooterView: UITableViewHeaderFooterView {
 
     var cellView: UIView?
+    var onReuse: (UIView) -> Void = { _ in }
 
     func reload(cell: ViewCell) {
         guard cell.typeIdentifier == reuseIdentifier else { return }
+        onReuse = cell.values.willReuse
         let view: UIView
         if let cellView {
             view = cellView
@@ -453,7 +470,10 @@ private final class AnyTableHeaderFooterView: UITableViewHeaderFooterView {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        if let reusableView = cellView as? ReusableView {
+        if let cellView {
+            onReuse(cellView)
+        }
+        if let reusableView = cellView as? UICollectionReusableView {
             reusableView.prepareForReuse()
         }
     }

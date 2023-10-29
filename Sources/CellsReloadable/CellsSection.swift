@@ -2,7 +2,7 @@ import SwiftUI
 
 public struct CellsSection: Identifiable {
 
-    public var id: String { values.id }
+    public var id: AnyHashable { values.id }
     public var values: CellsSection.Values
     public let cells: [ViewCell]
 
@@ -14,78 +14,68 @@ public struct CellsSection: Identifiable {
         self.cells = cells
     }
 
-    public init(
-        id: String,
-        cells: [ViewCell]
-    ) {
-        self.init(values: CellsSection.Values(id: id), cells: cells)
-    }
-
     public struct Values: Identifiable {
 
-        public var id: String
+        public var id: AnyHashable
         private var values: [PartialKeyPath<Self>: Any] = [:]
 
-        public init(id: String) {
+        public init(id: AnyHashable) {
             self.id = id
         }
 
-        public subscript<V>(_ keyPath: KeyPath<CellsSection.Values, V>) -> V? {
+        public subscript<V>(_ keyPath: WritableKeyPath<CellsSection.Values, V>) -> V? {
             get { values[keyPath] as? V }
             set { values[keyPath] = newValue }
         }
-    }
-
-    public func with<V>(_ keyPath: WritableKeyPath<CellsSection.Values, V>, _ value: V) -> CellsSection {
-        var section = self
-        section.values[keyPath: keyPath] = value
-        return section
-    }
-
-    @_disfavoredOverload
-    public func with<V>(_ keyPath: KeyPath<CellsSection.Values, V>, _ value: V) -> CellsSection {
-        var section = self
-        section.values[keyPath] = value
-        return section
-    }
-
-    public func cellsWith<V>(_ keyPath: KeyPath<ViewCell.Values, V>, _ value: V) -> CellsSection {
-        CellsSection(values: values, cells: cells.map { $0.with(keyPath, value) })
-    }
-
-    @_disfavoredOverload
-    public func cellsWith<V>(_ keyPath: WritableKeyPath<ViewCell.Values, V>, _ value: V) -> CellsSection {
-        CellsSection(values: values, cells: cells.map { $0.with(keyPath, value) })
     }
 }
 
 public extension CellsSection {
 
     init(
-        id: String,
+        id: AnyHashable = NoneID(),
         @ViewCellsBuilder _ cells: () -> [ViewCell]
     ) {
         self.init(id: id, cells: cells())
     }
 
-    init(
-        fileID: String = #fileID,
-        line: UInt = #line,
-        column: UInt = #column,
-        @ViewCellsBuilder _ cells: () -> [ViewCell]
-    ) {
-        self.init(id: .codeID(fileID: fileID, line: line, column: column), cells: cells())
+    init<Data: Collection>(
+        id: AnyHashable = NoneID(),
+        cells: Data
+    ) where Data.Element: ViewCellConvertible {
+        self.init(
+            values: Values(id: id),
+            cells: (cells as? [ViewCell]) ?? cells.map(\.asViewCell)
+        )
     }
 
     init<Data: Collection, Cell: UIView>(
-        id: String,
+        id: AnyHashable = NoneID(),
         data: Data,
-        cellID: (Data.Element) -> String,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void
     ) {
         self.init(
-            id: id,
+            values: Values(id: id),
+            cells: data.map { data in
+                ViewCell {
+                    create(data)
+                } render: {
+                    render($0, data)
+                }
+            }
+        )
+    }
+
+    init<Data: Collection, Cell: UIView, ID: Hashable>(
+        id: AnyHashable = NoneID(),
+        data: Data,
+        cellID: (Data.Element) -> ID,
+        create: @escaping (Data.Element) -> Cell,
+        render: @escaping (Cell, Data.Element) -> Void
+    ) {
+        self.init(
+            values: Values(id: id),
             cells: data.map { data in
                 ViewCell(id: cellID(data)) {
                     create(data)
@@ -96,8 +86,8 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Collection, ID: CustomStringConvertible, Cell: UIView>(
-        id: String,
+    init<Data: Collection, ID: Hashable, Cell: UIView>(
+        id: AnyHashable = NoneID(),
         data: Data,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void
@@ -105,129 +95,109 @@ public extension CellsSection {
         self.init(
             id: id,
             data: data,
-            cellID: \.id.description,
+            cellID: \.id,
             create: create,
             render: render
         )
     }
+}
 
-    init<Data: Collection, Cell: UIView>(
-        id: String,
+public extension CellsSection {
+
+    init<Data: Collection>(
+        id: AnyHashable = NoneID(),
         data: Data,
-        create: @escaping (Data.Element) -> Cell,
-        render: @escaping (Cell, Data.Element) -> Void
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
     ) {
         self.init(
             id: id,
-            cells: data.enumerated().map { index, data in
-                ViewCell(id: "\(index)") {
-                    create(data)
-                } render: {
-                    render($0, data)
+            cells: data.flatMap(create)
+        )
+    }
+
+    init<Data: Collection, ID: Hashable>(
+        id: AnyHashable = NoneID(),
+        data: Data,
+        cellID: (Data.Element) -> ID,
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
+    ) {
+        self.init(
+            id: id,
+            cells: data.flatMap { props in
+                create(props).map {
+                    $0.updateIDIfNeeded(id: cellID(props))
                 }
             }
+        )
+    }
+
+    init<Data: Collection, ID: Hashable>(
+        id: AnyHashable = NoneID(),
+        data: Data,
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
+    ) where Data.Element: Identifiable<ID> {
+        self.init(
+            id: id,
+            data: data,
+            cellID: \.id,
+            create: create
         )
     }
 }
 
 public extension CellsSection {
 
-    init<Data: Collection, Cell: View>(
-        id: String,
-        data: Data,
-        cellID: (Data.Element) -> String,
-        @ViewBuilder create: @escaping (Data.Element) -> Cell
-    ) {
-        self.init(
-            id: id,
-            data: data,
-            cellID: cellID
-        ) {
-            HostingView(create($0))
-        } render: {
-            ($0 as HostingView<Cell>).rootView = create($1)
-        }
-    }
-
-    init<Data: Collection, ID: CustomStringConvertible, Cell: View>(
-        id: String,
-        data: Data,
-        @ViewBuilder create: @escaping (Data.Element) -> Cell
-    ) where Data.Element: Identifiable<ID> {
-        self.init(
-            id: id,
-            data: data
-        ) {
-            HostingView(create($0))
-        } render: {
-            $0.rootView = create($1)
-        }
-    }
-
-    init<Data: Collection, Cell: View>(
-        id: String,
-        data: Data,
-        @ViewBuilder create: @escaping (Data.Element) -> Cell
-    ) {
-        self.init(
-            id: id,
-            data: data
-        ) {
-            HostingView(create($0))
-        } render: {
-            $0.rootView = create($1)
-        }
-    }
-}
-
-public extension CellsSection {
-
-    init<Cell: RenderableView>(
-        id: String,
+    init<Cell: RenderableView, ID: Hashable>(
+        id: AnyHashable = NoneID(),
         data: some Collection<Cell.Props>,
-        cellID: (Cell.Props) -> String,
-        create: @escaping (Cell.Props) -> Cell
+        cellID: (Cell.Props) -> ID,
+        create: @escaping () -> Cell
     ) {
         self.init(
             id: id,
             data: data,
             cellID: cellID
-        ) {
-            create($0)
+        ) { _ in
+            create()
         } render: {
             $0.render(with: $1)
         }
     }
 
-    init<ID: CustomStringConvertible, Cell: RenderableView>(
-        id: String,
+    init<ID: Hashable, Cell: RenderableView>(
+        id: AnyHashable = NoneID(),
         data: some Collection<Cell.Props>,
-        create: @escaping (Cell.Props) -> Cell
+        create: @escaping () -> Cell
     ) where Cell.Props: Identifiable<ID> {
         self.init(
             id: id,
             data: data
-        ) {
-            create($0)
+        ) { _ in
+            create()
         } render: {
             $0.render(with: $1)
         }
     }
 
     init<Cell: RenderableView>(
-        id: String,
+        id: AnyHashable = NoneID(),
         data: some Collection<Cell.Props>,
-        create: @escaping (Cell.Props) -> Cell
+        create: @escaping () -> Cell
     ) {
         self.init(
             id: id,
             data: data
-        ) {
-            create($0)
+        ) { _ in
+            create()
         } render: {
             $0.render(with: $1)
         }
     }
+}
+
+public protocol CellsSectionConvertible {
+
+    var asCellsSection: CellsSection { get }
 }
 
 extension CellsSection: CellsSectionConvertible {
@@ -235,7 +205,24 @@ extension CellsSection: CellsSectionConvertible {
     public var asCellsSection: CellsSection { self }
 }
 
-public protocol CellsSectionConvertible {
+public extension CellsSectionConvertible {
 
-    var asCellsSection: CellsSection { get }
+    func with<V>(_ keyPath: WritableKeyPath<CellsSection.Values, V>, _ value: V) -> CellsSection {
+        var section = asCellsSection
+        section.values[keyPath: keyPath] = value
+        return section
+    }
+    
+    func map(_ transform: (ViewCell) -> ViewCell) -> CellsSection {
+        let section = asCellsSection
+        return CellsSection(values: section.values, cells: section.cells.map(transform))
+    }
+
+    func updateIDIfNeeded(id: AnyHashable) -> CellsSection {
+        var result = asCellsSection
+        if result.id.base is NoneID {
+            result.values.id = id
+        }
+        return result
+    }
 }

@@ -7,6 +7,7 @@ final class UniqueDiffableDataSourceSnapshot<SectionType, ItemType> {
     typealias Snapshot = NSDiffableDataSourceSnapshot<HashableByID<SectionType, AnyHashable>, HashableByID<ItemType, AnyHashable>>
 
     var snapshot = Snapshot()
+    var hasDuplicatedKeys = false
     private let itemID: (ItemType) -> AnyHashable
     private let sectionID: (SectionType) -> AnyHashable
 
@@ -25,11 +26,21 @@ final class UniqueDiffableDataSourceSnapshot<SectionType, ItemType> {
     func appendItems(_ items: [ItemType]) {
         let uniqueItems = convertToUniqueItems(items)
         snapshot.appendItems(uniqueItems)
+        reconfigureItems(uniqueItems)
     }
 
     func appendItems(_ items: [ItemType], toSection sectionIdentifier: SectionType? = nil) {
         let uniqueItems = convertToUniqueItems(items)
         snapshot.appendItems(uniqueItems, toSection: sectionIdentifier.map(convertToSection))
+        reconfigureItems(uniqueItems)
+    }
+    
+    func reconfigureItems(_ items: [HashableByID<ItemType, AnyHashable>]) {
+        if #available(iOS 15.0, *) {
+            snapshot.reconfigureItems(items)
+        } else {
+            snapshot.reloadItems(items)
+        }
     }
 
     subscript<T>(dynamicMember keyPath: KeyPath<Snapshot, T>) -> T {
@@ -83,6 +94,7 @@ private extension UniqueDiffableDataSourceSnapshot {
             let id = itemID(item)
             if usedItems.contains(id) {
                 print("Non-unique item \(id) detected")
+                hasDuplicatedKeys = true
                 let newID = UUID()
                 return HashableByID(item) { _ in newID }
             } else {
@@ -98,6 +110,7 @@ private extension UniqueDiffableDataSourceSnapshot {
             let id = sectionID(section)
             if usedSections.contains(id) {
                 print("Non-unique section \(id) detected")
+                hasDuplicatedKeys = true
                 let newID = UUID()
                 return HashableByID(section) { _ in newID }
             } else {

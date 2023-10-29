@@ -66,48 +66,61 @@ extension UIStackView: CellsSectionsReloadable {
         distribution = data.distribution ?? distribution
         backgroundColor = data.backgroundColor ?? backgroundColor
         layer.cornerRadius = data.cornerRadius ?? layer.cornerRadius
+        directionalLayoutMargins = data.margins ?? directionalLayoutMargins
+        if data.margins != nil {
+            isLayoutMarginsRelativeArrangement = true
+        }
     }
 }
 
-extension CellsSection.Values {
-    
-    public var stack: Stack {
+public extension CellsSection.Values {
+
+    var stack: Stack {
         get { self[\.stack] ?? Stack() }
         set { self[\.stack] = newValue }
     }
-    
-    public struct Stack: Equatable {
-        
+
+    struct Stack: Equatable {
+
         public var axis: NSLayoutConstraint.Axis?
         public var spacing: CGFloat?
         public var alignment: UIStackView.Alignment?
         public var distribution: UIStackView.Distribution?
         public var backgroundColor: UIColor?
         public var cornerRadius: CGFloat?
-        
-        public init() {
-        }
+        public var margins: NSDirectionalEdgeInsets?
+
+        public init() {}
     }
 }
 
 private extension UIView {
-    
+
     enum AssociatedKeys {
-        
-        static var stackID = "stackID"
+
+        static var stackID = 0
     }
-    
-    var stackID: String? {
+
+    var stackID: AnyHashable? {
         get {
-            objc_getAssociatedObject(self, &AssociatedKeys.stackID) as? String
+            (objc_getAssociatedObject(self, &AssociatedKeys.stackID) as? IDWrapper)?.id
         }
         set {
             objc_setAssociatedObject(
                 self,
                 &AssociatedKeys.stackID,
-                newValue,
+                newValue.map { IDWrapper($0) },
                 .OBJC_ASSOCIATION_RETAIN_NONATOMIC
             )
         }
+    }
+}
+
+private final class IDWrapper {
+
+    var id: AnyHashable
+
+    init(_ id: AnyHashable) {
+        self.id = id
     }
 }

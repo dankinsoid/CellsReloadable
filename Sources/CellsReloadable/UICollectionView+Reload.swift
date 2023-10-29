@@ -8,30 +8,34 @@ import UIKit
 /// It's recommend to use `Identifiable` items for correct animations.
 public final class UICollectionViewReloader: NSObject, CellsSectionsReloadable {
 
-    public var isAnimated: Bool
-    private(set) public weak var collectionView: UICollectionView?
+    public var isAnimated: Bool {
+        didSet {
+            configureDataSource()
+        }
+    }
+
+    public private(set) var sections: [CellsSection] = []
+    public private(set) weak var collectionView: UICollectionView?
     public weak var collectionViewDelegate: UICollectionViewDelegate?
 
-    private let diffableDataSource: UniquelyCollectionDiffableDataSource<CellsSection.Values, ViewCell>
+    private var diffableDataSource: UniquelyCollectionDiffableDataSource<AnyHashable, ViewCell>?
+    private var cellsByID: [AnyHashable: ViewCell] = [:]
+    private var isFirstReload = true
 
     public init(
         _ collectionView: UICollectionView,
-        isAnimated: Bool = true,
+        isAnimated: Bool = false,
         delegate: UICollectionViewDelegate? = nil
     ) {
         self.isAnimated = isAnimated
         self.collectionView = collectionView
-        diffableDataSource = UniquelyCollectionDiffableDataSource(collectionView)
         super.init()
         collectionViewDelegate = delegate
         prepareCollectionView()
     }
 
-    public func sections() -> [CellsSection] {
-        diffableDataSource.snapshot().sections()
-    }
-
     public func reloadData() {
+        defer { isFirstReload = false }
         collectionView?.reloadData()
     }
 
@@ -55,7 +59,7 @@ public final class UICollectionViewReloader: NSObject, CellsSectionsReloadable {
 }
 
 public extension UICollectionView {
-    
+
     var reloader: UICollectionViewReloader? {
         delegate as? UICollectionViewReloader
     }
@@ -64,38 +68,55 @@ public extension UICollectionView {
 public extension UICollectionViewReloader {
 
     func sectionValues(forSection section: Int) -> CellsSection.Values? {
-        let snapshot = diffableDataSource.snapshot()
-        return snapshot.sectionIdentifiers[safe: section]?.value
+        sections[safe: section]?.values
     }
 
     func viewCellForItem(at indexPath: IndexPath) -> ViewCell? {
-        let snapshot = diffableDataSource.snapshot()
-        guard let sectionID = snapshot.sectionIdentifiers[safe: indexPath.section] else { return nil }
-        return snapshot.itemIdentifiers(inSection: sectionID)[safe: indexPath.row]?.value
+        sections[safe: indexPath.section]?.cells[safe: indexPath.item]
     }
-    
+
     func viewForItem(at indexPath: IndexPath) -> UIView? {
         (collectionView?.cellForItem(at: indexPath) as? AnyCollectionViewCell)?.cellView
     }
-    
-    func viewForItem(with id: String) -> UIView? {
+
+    func viewForItem(with id: AnyHashable) -> UIView? {
         guard let indexPath = indexPath(with: id) else {
             return nil
         }
         return viewForItem(at: indexPath)
     }
-    
-    func viewCellForItem(with id: String) -> ViewCell? {
+
+    func viewCellForItem(with id: AnyHashable) -> ViewCell? {
         guard let indexPath = indexPath(with: id) else {
             return nil
         }
         return viewCellForItem(at: indexPath)
     }
-    
-    func indexPath(with id: String) -> IndexPath? {
-        diffableDataSource.indexPath(
-            for: HashableByID(ViewCell { UIView() }) { _ in id }
+
+    func indexPath(with id: AnyHashable) -> IndexPath? {
+        diffableDataSource?.indexPath(
+            for: HashableByID(ViewCell(id: id) { UIView() }, id: \.id)
         )
+    }
+
+    var visibleViews: [UIView] {
+        collectionView?.visibleCells.compactMap { ($0 as? AnyCollectionViewCell)?.cellView } ?? []
+    }
+}
+
+extension UICollectionViewReloader: UICollectionViewDataSource {
+
+    public func numberOfSections(in collectionView: UICollectionView) -> Int {
+        sections.count
+    }
+
+    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        sections[section].cells.count
+    }
+
+    public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = sections[indexPath.section].cells[indexPath.item]
+        return collectionView.dequeueReloadReusableCell(with: cell, for: indexPath)
     }
 }
 
@@ -141,11 +162,6 @@ extension UICollectionViewReloader: UICollectionViewDelegateFlowLayout {
     }
 }
 
-public extension ViewCell.Values {
-
-    var size: (CGSize) -> CGSize? { self[\.size] ?? { _ in nil } }
-}
-
 public extension UICollectionView {
 
     func dequeueReloadReusableCell(with item: ViewCell, for indexPath: IndexPath) -> UICollectionViewCell {
@@ -166,12 +182,46 @@ private extension UICollectionViewReloader {
             collectionViewDelegate = collectionView.delegate
         }
         collectionView.delegate = self
+        configureDataSource()
     }
 
     func reloadData(newValue: [CellsSection], completion: (() -> Void)? = nil) {
-        let snapshot = UniqueDiffableDataSourceSnapshot<CellsSection.Values, ViewCell>()
-        snapshot.reload(sections: newValue, completion: nil)
-        diffableDataSource.apply(snapshot, animatingDifferences: isAnimated, completion: completion)
+        defer { isFirstReload = false }
+        sections = newValue
+        guard let diffableDataSource else {
+            reloadData()
+            return
+        }
+
+        let snapshot = UniqueDiffableDataSourceSnapshot<AnyHashable, ViewCell>()
+        snapshot.appendSections(newValue.map(\.id))
+        for section in newValue {
+            snapshot.appendItems(section.cells, toSection: section.id)
+        }
+
+        cellsByID = Dictionary(sections.flatMap { $0.cells.map { ($0.id, $0) } }) { _, new in new }
+        let isAnimated = isAnimated && !isFirstReload && !snapshot.hasDuplicatedKeys
+        if #available(iOS 15.0, *), !isAnimated {
+            diffableDataSource.applySnapshotUsingReloadData(snapshot.snapshot, completion: completion)
+        } else {
+            diffableDataSource.apply(snapshot, animatingDifferences: isAnimated, completion: completion)
+        }
+    }
+
+    func configureDataSource() {
+        if isAnimated {
+            createDataSourceIfNeeded()
+        } else if diffableDataSource == nil {
+            collectionView?.dataSource = self
+        }
+    }
+
+    func createDataSourceIfNeeded() {
+        guard let collectionView, diffableDataSource == nil else { return }
+        diffableDataSource = UniquelyCollectionDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, cell in
+            let newCell = self?.cellsByID[cell.id] ?? self?.sections[safe: indexPath.section]?.cells[safe: indexPath.row] ?? cell
+            return collectionView.dequeueReloadReusableCell(with: newCell, for: indexPath)
+        }
     }
 }
 
@@ -194,36 +244,28 @@ private extension UICollectionView {
 
     private enum AssociatedKeys {
 
-        static var registeredIDsKey = "registeredIDsKey"
-    }
-}
-
-extension UniquelyCollectionDiffableDataSource<CellsSection.Values, ViewCell>: ViewCellsReloadable {}
-
-extension UniquelyCollectionDiffableDataSource<CellsSection.Values, ViewCell>: CellsSectionsReloadable {
-
-    func reload(sections: [CellsSection], completion: (() -> Void)?) {
-        let snapshot = UniqueDiffableDataSourceSnapshot<CellsSection.Values, ViewCell>()
-        snapshot.reload(sections: sections, completion: nil)
-        apply(snapshot, animatingDifferences: true, completion: completion)
-    }
-}
-
-extension UniquelyCollectionDiffableDataSource where ItemIdentifierType == ViewCell {
-
-    convenience init(_ collectionView: UICollectionView) {
-        self.init(collectionView: collectionView) { collectionView, indexPath, cell in
-            collectionView.dequeueReloadReusableCell(with: cell, for: indexPath)
-        }
+        static var registeredIDsKey = 0
     }
 }
 
 private final class AnyCollectionViewCell: UICollectionViewCell {
 
     var cellView: UIView?
+    var onReuse: (UIView) -> Void = {_  in }
+    var onHighlight: (UIView, Bool) -> Void = { _, _ in }
+
+    override var isHighlighted: Bool {
+        didSet {
+            if let cellView {
+                onHighlight(cellView, isHighlighted)
+            }
+        }
+    }
 
     func reload(cell: ViewCell) {
         guard cell.typeIdentifier == reuseIdentifier else { return }
+        onReuse = cell.values.willReuse
+        onHighlight = cell.values.didHighlight
         let view: UIView
         if let cellView {
             view = cellView
@@ -250,9 +292,10 @@ private final class AnyCollectionViewCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        if let cellView {
+            onReuse(cellView)
+        }
         if let reusableView = cellView as? UICollectionReusableView {
-            reusableView.prepareForReuse()
-        } else if let reusableView = cellView as? ReusableView {
             reusableView.prepareForReuse()
         }
     }

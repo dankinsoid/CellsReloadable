@@ -4,7 +4,7 @@ public struct ViewCell: Identifiable {
 
     private let create: () -> UIView
     private let render: (UIView) -> Void
-    public let id: String
+    public var id: AnyHashable
     public var values: Values
     public let type: Any.Type
 
@@ -12,47 +12,8 @@ public struct ViewCell: Identifiable {
         String(reflecting: type)
     }
 
-    public init<Cell: UIView>(
-        id: String,
-        create: @escaping () -> Cell,
-        render: @escaping (Cell) -> Void = { _ in }
-    ) {
-        self.init(
-            id: id,
-            type: Cell.self
-        ) {
-            create()
-        } render: { view in
-            guard let cell = view as? Cell else {
-                return
-            }
-            render(cell)
-        }
-    }
-
-    @_disfavoredOverload
-    public init<Cell: UIView>(
-        fileID: String = #fileID,
-        line: UInt = #line,
-        column: UInt = #column,
-        create: @escaping () -> Cell,
-        render: @escaping (Cell) -> Void = { _ in }
-    ) {
-        self.init(
-            id: .codeID(fileID: fileID, line: line, column: column),
-            type: Cell.self
-        ) {
-            create()
-        } render: { view in
-            guard let cell = view as? Cell else {
-                return
-            }
-            render(cell)
-        }
-    }
-
     public init(
-        id: String,
+        id: AnyHashable,
         values: ViewCell.Values = ViewCell.Values(),
         type: Any.Type,
         create: @escaping () -> UIView,
@@ -79,80 +40,122 @@ public struct ViewCell: Identifiable {
 
         public init() {}
 
-        public subscript<V>(_ keyPath: KeyPath<ViewCell.Values, V>) -> V? {
+        public subscript<V>(_ keyPath: WritableKeyPath<ViewCell.Values, V>) -> V? {
             get { values[keyPath] as? V }
             set { values[keyPath] = newValue }
         }
     }
-
-    public func with<V>(_ keyPath: WritableKeyPath<ViewCell.Values, V>, _ value: V) -> ViewCell {
-        var cell = self
-        cell.values[keyPath: keyPath] = value
-        return cell
-    }
-
-    @_disfavoredOverload
-    public func with<V>(_ keyPath: KeyPath<ViewCell.Values, V>, _ value: V) -> ViewCell {
-        var cell = self
-        cell.values[keyPath] = value
-        return cell
-    }
 }
 
 public extension ViewCell {
 
-    init<Cell: View>(
-        id: String,
-        @ViewBuilder view: () -> Cell
+    init<Cell: UIView>(
+        id: AnyHashable = NoneID(),
+        create: @escaping () -> Cell,
+        render: @escaping (Cell) -> Void = { _ in }
     ) {
-        let view = view()
         self.init(
             id: id,
-            create: { HostingView(view) },
-            render: { $0.rootView = view }
-        )
+            type: Cell.self
+        ) {
+            create()
+        } render: { view in
+            guard let cell = view as? Cell else {
+                return
+            }
+            render(cell)
+        }
     }
 
-    @_disfavoredOverload
-    init<Cell: View>(
-        fileID: String = #fileID,
-        line: UInt = #line,
-        column: UInt = #column,
-        @ViewBuilder view: () -> Cell
-    ) {
-        let view = view()
-        self.init(
-            id: .codeID(fileID: fileID, line: line, column: column),
-            create: { HostingView(view) },
-            render: { $0.rootView = view }
-        )
-    }
-}
-
-public extension ViewCell {
-
-    init<Cell: RenderableView>(
-        id: String,
-        props: Cell.Props,
-        create: @escaping () -> Cell
+    init<Cell: UIView>(
+        id: AnyHashable = NoneID(),
+        _ create: @escaping @autoclosure () -> Cell,
+        render: @escaping (Cell) -> Void = { _ in }
     ) {
         self.init(
             id: id,
             create: create,
-            render: { $0.render(with: props) }
+            render: render
+        )
+    }
+}
+
+public extension ViewCell {
+
+    init<Cell: View>(
+        id: AnyHashable = NoneID(),
+        @ViewBuilder view: () -> Cell
+    ) {
+        self.init(id: id, view())
+    }
+
+    init<Cell: View>(
+        id: AnyHashable = NoneID(),
+        _ view: Cell
+    ) {
+        self.init(id: id) {
+            HostingView(view)
+        } render: {
+            $0.rootView = view
+        }
+    }
+}
+
+public extension ViewCell {
+
+    @_disfavoredOverload
+    init<Cell: RenderableView>(
+        id: AnyHashable = NoneID(),
+        with props: Cell.Props,
+        create: @escaping () -> Cell
+    ) {
+        self.init(
+            id: id,
+            create: create
+        ) {
+            $0.render(with: props)
+        }
+    }
+
+    init<Cell: RenderableView>(
+        with props: Cell.Props,
+        create: @escaping () -> Cell
+    ) where Cell.Props: Identifiable {
+        self.init(
+            id: props.id,
+            with: props,
+            create: create
+        )
+    }
+
+    @_disfavoredOverload
+    init<Cell: RenderableView>(
+        id: AnyHashable = NoneID(),
+        _ create: @escaping @autoclosure () -> Cell,
+        with props: Cell.Props
+    ) {
+        self.init(
+            id: id,
+            with: props,
+            create: create
         )
     }
 
     init<Cell: RenderableView>(
-        props: Cell.Props,
-        create: @escaping () -> Cell
-    ) where Cell.Props: Identifiable, Cell.Props.ID: CustomStringConvertible {
+        _ create: @escaping @autoclosure () -> Cell,
+        with props: Cell.Props
+    ) where Cell.Props: Identifiable {
         self.init(
-            id: props.id.description,
-            props: props,
+            id: props.id,
+            with: props,
             create: create
         )
     }
+}
+
+public protocol ViewCellConvertible {
+
+    var asViewCell: ViewCell { get }
 }
 
 extension ViewCell: ViewCellConvertible {
@@ -160,7 +163,70 @@ extension ViewCell: ViewCellConvertible {
     public var asViewCell: ViewCell { self }
 }
 
-public protocol ViewCellConvertible {
+public extension ViewCellConvertible {
 
-    var asViewCell: ViewCell { get }
+    func with(id: AnyHashable) -> ViewCell {
+        var cell = asViewCell
+        cell.id = id
+        return cell
+    }
+
+    func with<V>(_ keyPath: WritableKeyPath<ViewCell.Values, V>, _ value: V) -> ViewCell {
+        var cell = asViewCell
+        cell.values[keyPath: keyPath] = value
+        return cell
+    }
+    
+    func transform<V>(_ keyPath: WritableKeyPath<ViewCell.Values, V>, _ value: (inout V) -> Void) -> ViewCell {
+        var cell = asViewCell
+        var oldValue = cell.values[keyPath: keyPath]
+        value(&oldValue)
+        cell.values[keyPath: keyPath] = oldValue
+        return cell
+    }
+    
+    func combine<A, B>(_ keyPath: WritableKeyPath<ViewCell.Values, (A, B) -> Void>, with value: @escaping (A, B) -> Void) -> ViewCell {
+        var cell = asViewCell
+        let oldValue = cell.values[keyPath: keyPath]
+        cell.values[keyPath: keyPath] = {
+            oldValue($0, $1)
+            value($0, $1)
+        }
+        return cell
+    }
+
+    func combine<V>(_ keyPath: WritableKeyPath<ViewCell.Values, (V) -> Void>, with value: @escaping (V) -> Void) -> ViewCell {
+        var cell = asViewCell
+        let oldValue = cell.values[keyPath: keyPath]
+        cell.values[keyPath: keyPath] = {
+            oldValue($0)
+            value($0)
+        }
+        return cell
+    }
+
+    func combine(_ keyPath: WritableKeyPath<ViewCell.Values, () -> Void>, with value: @escaping () -> Void) -> ViewCell {
+        var cell = asViewCell
+        let oldValue = cell.values[keyPath: keyPath]
+        cell.values[keyPath: keyPath] = {
+            oldValue()
+            value()
+        }
+        return cell
+    }
+    
+    func updateIDIfNeeded(id: AnyHashable) -> ViewCell {
+        var result = asViewCell
+        if result.id.base is NoneID || result.id.base is CodeID {
+            result.id = id
+        }
+        return result
+    }
+}
+
+public extension View {
+
+    func asViewCell(id: AnyHashable) -> ViewCell {
+        ViewCell(id: id, self)
+    }
 }

@@ -33,30 +33,22 @@ public enum CellsSectionsBuilder {
     }
 
     @inlinable
-    public static func buildExpression(_ expression: some CellsSectionConvertible) -> [CellsSection] {
-        [expression.asCellsSection]
-    }
-
-    @inlinable
-    public static func buildExpression<C: Sequence>(_ expression: C) -> [CellsSection] where C.Element: CellsSectionConvertible {
-        expression.map(\.asCellsSection)
-    }
-
-    @inlinable
-    public static func buildExpression<C: Sequence>(
-        _ expression: C,
-        file: String = #fileID,
+    public static func buildExpression(
+        _ expression: some CellsSectionConvertible,
+        fileID: String = #fileID,
         line: UInt = #line,
         column: UInt = #column
-    ) -> [CellsSection] where C.Element: ViewCellConvertible {
-        buildExpression(
-            CellsSection(
-                fileID: file,
-                line: line,
-                column: column
-            ) {
-                expression
-            }
-        )
+    ) -> [CellsSection] {
+        [expression.updateIDIfNeeded(id: CodeID(fileID: fileID, line: line, column: column))]
+    }
+
+    @inlinable
+    public static func buildExpression(
+        _ expression: any CellsSectionConvertible,
+        fileID: String = #fileID,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> [CellsSection] {
+        [expression.updateIDIfNeeded(id: CodeID(fileID: fileID, line: line, column: column))]
     }
 }
