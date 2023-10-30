@@ -10,3 +10,10 @@ public struct UnionID<F: Hashable, S: Hashable>: Hashable {
         self.second = second
     }
 }
+
+extension UnionID: CustomStringConvertible {
+    
+    public var description: String {
+        "(\(first) \(second))"
+    }
+}

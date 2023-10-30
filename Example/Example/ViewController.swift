@@ -22,21 +22,21 @@ class ViewController: UIViewController {
 //            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
 //        ])
         
-//        view.addSubview(collection)
-//        collection.translatesAutoresizingMaskIntoConstraints = false
-//        NSLayoutConstraint.activate([
-//            collection.topAnchor.constraint(equalTo: view.topAnchor),
-//            collection.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-//            collection.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-//            collection.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-//        ])
+        view.addSubview(collection)
+        collection.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            collection.topAnchor.constraint(equalTo: view.topAnchor),
+            collection.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            collection.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collection.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+        ])
         
-        view.addSubview(layoutView)
-        layoutView.translatesAutoresizingMaskIntoConstraints = false
-                NSLayoutConstraint.activate([
-                    layoutView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                    layoutView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                ])
+//        view.addSubview(layoutView)
+//        layoutView.translatesAutoresizingMaskIntoConstraints = false
+//                NSLayoutConstraint.activate([
+//                    layoutView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+//                    layoutView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+//                ])
         
         
 //        stackView.axis = .vertical
@@ -65,30 +65,27 @@ class ViewController: UIViewController {
     @objc
     func reload() {
         UIView.animate(withDuration: 0.3) { [self] in
-            layoutView.reload {
-                HLayout {
-                    for i in (0..<5).shuffled() {
-                        ViewCell(id: "\(i)") {
-                            UIKitCustomCell()
-                        } render: { cell in
+            collection.reload {
+                HLayout(spacing: 10) {
+                    ForEachLayout((0..<5).shuffled()) { i in
+                        UIKitCustomCell.Cell { cell in
                             cell.label.text = "Item \(i)"
+                        }
+                        .background {
+                            UIColor.yellow
                         }
                     }
                     HLayout(spacing: 10) {
-                        ViewCell(id: "AlmostLast") {
-                            UIKitCustomCell()
-                        } render: { cell in
+                        UIKitCustomCell.Cell { cell in
                             cell.label.text = "Prelast item"
                         }
                         Spacing().size(width: 30)
-                        ViewCell(id: "Last") {
-                            UIKitCustomCell()
-                        } render: { cell in
+                        UIKitCustomCell.Cell { cell in
                             cell.label.text = "Last item"
                         }
                     }
                     .background {
-                        ColorLayout(id: "Color Last", .green)
+                        UIColor.green
                     }
                 }
             }
