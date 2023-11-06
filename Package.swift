@@ -12,12 +12,12 @@ let package = Package(
         .library(name: "CellsReloadable", targets: ["CellsReloadable"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/ra1028/DifferenceKit.git", from: "1.3.0")
     ],
     targets: [
         .target(
             name: "CellsReloadable",
-            dependencies: [
-            ]
+            dependencies: ["DifferenceKit"]
         )
     ]
 )

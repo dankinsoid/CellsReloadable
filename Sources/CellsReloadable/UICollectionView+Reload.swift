@@ -1,4 +1,5 @@
 import UIKit
+import DifferenceKit
 
 /// ```UICollectionViewReloader``` is a class that eliminates the need to work with the traditional datasource.
 /// It allows you to directly deal with the data and the cell that should be displayed.
@@ -17,9 +18,11 @@ public final class UICollectionViewReloader: NSObject, CellsSectionsReloadable {
     public private(set) var sections: [CellsSection] = []
     public private(set) weak var collectionView: UICollectionView?
     public weak var collectionViewDelegate: UICollectionViewDelegate?
+    
+    /// Max number of changes that can be animated for diffing updates. Default is 300.
+    public var animatableChangeCount = 300
 
-    private var diffableDataSource: UniquelyCollectionDiffableDataSource<AnyHashable, ViewCell>?
-    private var cellsByID: [AnyHashable: ViewCell] = [:]
+    private var indexPathsByID: [AnyHashable: IndexPath] = [:]
     private var isFirstReload = true
 
     public init(
@@ -94,9 +97,16 @@ public extension UICollectionViewReloader {
     }
 
     func indexPath(with id: AnyHashable) -> IndexPath? {
-        diffableDataSource?.indexPath(
-            for: HashableByID(ViewCell(id: id) { UIView() }, id: \.id)
-        )
+        if indexPathsByID.isEmpty {
+            indexPathsByID = Dictionary(
+                sections.enumerated().flatMap { s, section in
+                    section.cells.enumerated().map { r, cell in
+                        (cell.id, IndexPath(row: r, section: s))
+                    }
+                }
+            ) { _, new in new }
+        }
+        return indexPathsByID[id]
     }
 
     var visibleViews: [UIView] {
@@ -186,42 +196,28 @@ private extension UICollectionViewReloader {
     }
 
     func reloadData(newValue: [CellsSection], completion: (() -> Void)? = nil) {
+        guard let collectionView else { return }
         defer { isFirstReload = false }
-        sections = newValue
-        guard let diffableDataSource else {
+        indexPathsByID = [:]
+        let isAnimated = isAnimated && !isFirstReload && !collectionView._isScrolling
+        guard isAnimated else {
+            sections = newValue
             reloadData()
             return
         }
-
-        let snapshot = UniqueDiffableDataSourceSnapshot<AnyHashable, ViewCell>()
-        snapshot.appendSections(newValue.map(\.id))
-        for section in newValue {
-            snapshot.appendItems(section.cells, toSection: section.id)
+        let changeset = StagedChangeset(source: sections, target: newValue)
+        guard changeset.count <= animatableChangeCount else {
+            sections = newValue
+            reloadData()
+            return
         }
-
-        cellsByID = Dictionary(sections.flatMap { $0.cells.map { ($0.id, $0) } }) { _, new in new }
-        let isAnimated = isAnimated && !isFirstReload && !snapshot.hasDuplicatedKeys
-        if #available(iOS 15.0, *), !isAnimated {
-            diffableDataSource.applySnapshotUsingReloadData(snapshot.snapshot, completion: completion)
-        } else {
-            diffableDataSource.apply(snapshot, animatingDifferences: isAnimated, completion: completion)
+        collectionView.reload(using: changeset) {
+            sections = $0
         }
     }
 
     func configureDataSource() {
-        if isAnimated {
-            createDataSourceIfNeeded()
-        } else if diffableDataSource == nil {
-            collectionView?.dataSource = self
-        }
-    }
-
-    func createDataSourceIfNeeded() {
-        guard let collectionView, diffableDataSource == nil else { return }
-        diffableDataSource = UniquelyCollectionDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, cell in
-            let newCell = self?.cellsByID[cell.id] ?? self?.sections[safe: indexPath.section]?.cells[safe: indexPath.row] ?? cell
-            return collectionView.dequeueReloadReusableCell(with: newCell, for: indexPath)
-        }
+        collectionView?.dataSource = self
     }
 }
 

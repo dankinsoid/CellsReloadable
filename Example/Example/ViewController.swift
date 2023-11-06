@@ -4,8 +4,9 @@ import CellsReloadable
 class ViewController: UIViewController {
 
     let tableView = UITableView(frame: .zero, style: .grouped)
-    lazy var reloader = UITableViewReloader(tableView)
+    lazy var reloader = UITableViewReloader(tableView, animation: .leading)
     let stackView = UIStackView()
+    var count = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -45,15 +46,20 @@ class ViewController: UIViewController {
     
     @objc
     func reload() {
-        let array = (0..<Int.random(in: 4...20)).map { UIKitCustomCell.Props($0) }.shuffled()
-        reloader.reloadSections {
+        count += 1
+        let array = (0..<Int.random(in: 4...20)).map {
+            UIKitCustomCell.Props(id: "\($0)", title: "\(count) Item \($0)")
+        }.shuffled()
+        reloader.reload {
             CellsSection {
                 SwiftUICell()
             }
-            CellsSection(id: "array", data: array) { _ in
+            CellsSection(id: "array", data: array) {
                 UIKitCustomCell()
             }
-            .cellsWith(\.height, 50)
+            .map {
+                $0.height(50)
+            }
         }
     }
 }
