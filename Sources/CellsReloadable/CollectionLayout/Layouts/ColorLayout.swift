@@ -1,16 +1,13 @@
 import UIKit
 
-extension UIColor: CollectionLayout {
+extension UIColor: CustomCollectionLayout {
 
     public var properties: LayoutProperties {
         LayoutProperties(priority: 0)
     }
 
-    public func sizeThatFits(proposal: ProposedSize, context: LayoutContext, cache: inout ()) -> CGSize {
-        CGSize(
-            width: proposal.width ?? 0,
-            height: proposal.height ?? 0
-        )
+    public func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout ()) -> ProposedSize {
+        size
     }
 
     public func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout (), place: (ViewCell, CGRect) -> Void) {
@@ -24,15 +21,17 @@ extension UIColor: CollectionLayout {
         )
     }
 
-    public func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
-        visitor.visit(
-            with: [
-                ViewCell(id: localID) {
-                    UIView()
-                } render: { cell in
-                    cell.backgroundColor = self
-                }
-            ]
-        )
+    public func makeItems(localID: some Hashable) -> [ViewCell] {
+        [
+            ViewCell(id: localID) {
+                UIView()
+            } render: { cell in
+                cell.backgroundColor = self
+            }
+        ]
+    }
+    
+    public func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+        [AnyCollectionLayout(self)]
     }
 }

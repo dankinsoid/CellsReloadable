@@ -1,25 +1,25 @@
 import Foundation
 
-enum IfLayout<L: CollectionLayout, S: CollectionLayout>: CollectionLayout {
-    
-    case first(L)
-    case second(S)
-    
-    func sizeThatFits(proposal: ProposedSize, context: LayoutContext, cache: inout Cache) -> CGSize {
+enum IfLayout<L: CollectionLayout, S: CollectionLayout>: CustomCollectionLayout {
+
+    case first(L.Layout)
+    case second(S.Layout)
+
+    func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout Cache) -> ProposedSize {
         switch (self, cache) {
         case (.first(let l), .first(var lCache)):
-            let result = l.sizeThatFits(proposal: proposal, context: context, cache: &lCache)
+            let result = l.sizeThatFits(proposal: size, context: context, cache: &lCache)
             cache = .first(lCache)
             return result
         case (.second(let s), .second(var sCache)):
-            let result = s.sizeThatFits(proposal: proposal, context: context, cache: &sCache)
+            let result = s.sizeThatFits(proposal: size, context: context, cache: &sCache)
             cache = .second(sCache)
             return result
         default:
             return .zero
         }
     }
-    
+
     func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout Cache, place: (ViewCell, CGRect) -> Void) {
         switch (self, cache) {
         case (.first(let l), .first(var lCache)):
@@ -32,7 +32,7 @@ enum IfLayout<L: CollectionLayout, S: CollectionLayout>: CollectionLayout {
             return
         }
     }
-    
+
     func createCache() -> Cache {
         switch self {
         case .first(let l):
@@ -41,35 +41,35 @@ enum IfLayout<L: CollectionLayout, S: CollectionLayout>: CollectionLayout {
             return .second(s.createCache())
         }
     }
-    
-    func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
+
+    func makeItems(localID: some Hashable) -> [ViewCell] {
         switch self {
         case .first(let l):
-            l.makeItems(visitor: &visitor, localID: Self.firstID(for: localID))
+            l.makeItems(localID: Self.firstID(for: localID))
         case .second(let s):
-            s.makeItems(visitor: &visitor, localID: Self.secondID(for: localID))
+            s.makeItems(localID: Self.secondID(for: localID))
         }
     }
-    
-    func makeLayouts(visitor: inout some LayoutVisitor, localID: some Hashable) {
+
+    func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
         switch self {
         case .first(let l):
-            l.makeLayouts(visitor: &visitor, localID: Self.firstID(for: localID))
+            l.makeLayouts(localID: Self.firstID(for: localID))
         case .second(let s):
-            s.makeLayouts(visitor: &visitor, localID: Self.secondID(for: localID))
+            s.makeLayouts(localID: Self.secondID(for: localID))
         }
     }
-    
+
     enum Cache {
-        
-        case first(L.Cache)
-        case second(S.Cache)
+
+        case first(L.Layout.Cache)
+        case second(S.Layout.Cache)
     }
-    
+
     static func firstID(for id: AnyHashable) -> AnyHashable {
         UnionID(id, true)
     }
-    
+
     static func secondID(for id: AnyHashable) -> AnyHashable {
         UnionID(id, false)
     }

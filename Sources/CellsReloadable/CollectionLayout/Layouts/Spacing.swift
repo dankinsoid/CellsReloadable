@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Spacing: CollectionLayout {
+public struct Spacing: CustomCollectionLayout {
     
     public var properties: LayoutProperties {
         LayoutProperties(priority: 0)
@@ -11,16 +11,18 @@ public struct Spacing: CollectionLayout {
     public init() {
     }
     
-    public func sizeThatFits(proposal: ProposedSize, context: LayoutContext, cache: inout ()) -> CGSize {
-        CGSize(
-            width: proposal.width ?? 0,
-            height: proposal.height ?? 0
-        )
+    public func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout ()) -> ProposedSize {
+        size
     }
     
     public func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout (), place: (ViewCell, CGRect) -> Void) {
     }
     
-    public func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
+    public func makeItems(localID: some Hashable) -> [ViewCell] {
+        []
+    }
+    
+    public func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+        [AnyCollectionLayout(self)]
     }
 }

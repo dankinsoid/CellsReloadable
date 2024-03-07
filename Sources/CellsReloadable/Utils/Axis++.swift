@@ -2,14 +2,6 @@ import UIKit
 
 extension NSLayoutConstraint.Axis {
     
-    var oposite: NSLayoutConstraint.Axis {
-        switch self {
-        case .horizontal: return .vertical
-        case .vertical: return .horizontal
-        @unknown default: return self
-        }
-    }
-    
     var sizeKP: WritableKeyPath<CGSize, CGFloat> {
         switch self {
         case .horizontal: return \.width
@@ -25,4 +17,28 @@ extension NSLayoutConstraint.Axis {
         @unknown default: return \.width
         }
     }
+}
+
+func max<T: Comparable>(_ items: T?...) -> T? {
+    var result: T? = nil
+    for item in items {
+        if let item = item {
+            result = max(result ?? item, item)
+        } else {
+            return nil
+        }
+    }
+    return result
+}
+
+func min<T: Comparable>(_ items: T?...) -> T? {
+    var result: T? = nil
+    for item in items {
+        if let item = item {
+            result = min(result ?? item, item)
+        } else {
+            return nil
+        }
+    }
+    return result
 }

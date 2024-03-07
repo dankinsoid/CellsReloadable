@@ -16,11 +16,11 @@ public enum LayoutBuilder {
     }
     
     public static func buildEither<F: CollectionLayout, S: CollectionLayout>(first component: F) -> some CollectionLayout {
-        IfLayout<F, S>.first(component)
+        IfLayout<F, S>.first(component.layout)
     }
     
     public static func buildEither<F: CollectionLayout, S: CollectionLayout>(second component: S) -> some CollectionLayout {
-        IfLayout<F, S>.second(component)
+        IfLayout<F, S>.second(component.layout)
     }
     
     @inlinable

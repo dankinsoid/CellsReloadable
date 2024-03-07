@@ -16,7 +16,7 @@ open class CellsSectionLayout: UICollectionViewLayout {
         
         var cache = layout.createCache()
         
-        var proposal: ProposedSize = .unspecified
+        var proposal = ProposedSize.unspecified
         var origin = CGPoint.zero
         if let axis = layout.properties.axis {
             switch axis {
@@ -53,6 +53,7 @@ open class CellsSectionLayout: UICollectionViewLayout {
             context: context,
             cache: &cache
         ) { item, rect in
+//            print(rect)
             ids.append(item.id)
             let attributes = UICollectionViewLayoutAttributes(
                 forCellWith: IndexPath(item: allAttributes.count, section: 0)

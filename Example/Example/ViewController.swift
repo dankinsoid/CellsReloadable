@@ -79,7 +79,7 @@ class ViewController: UIViewController {
                         UIKitCustomCell.Cell { cell in
                             cell.label.text = "Prelast item"
                         }
-                        Spacing().size(width: 30)
+//                        Spacing().width(30)
                         UIKitCustomCell.Cell { cell in
                             cell.label.text = "Last item"
                         }

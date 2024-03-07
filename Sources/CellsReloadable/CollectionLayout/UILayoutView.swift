@@ -7,12 +7,7 @@ open class UILayoutView: UIView {
     private var layoutViews: [AnyHashable: UIView] = [:]
     private var needReload = true
     private var lastSize: CGSize?
-    private var size: CGSize? {
-        didSet {
-            guard size != oldValue else { return }
-            invalidateIntrinsicContentSize()
-        }
-    }
+    private var size: CGSize?
     
     open override var intrinsicContentSize: CGSize {
         size ?? CGSize(
@@ -52,9 +47,8 @@ open class UILayoutView: UIView {
             }
         )
         var cache = layout.createCache()
-        let proposal = ProposedSize(frame.size)
         return layout.sizeThatFits(
-            proposal: proposal,
+            proposal: ProposedSize(frame.size),
             context: context,
             cache: &cache
         )
@@ -99,5 +93,27 @@ open class UILayoutView: UIView {
             view.removeFromSuperview()
         }
         self.size = size
+        super.invalidateIntrinsicContentSize()
+    }
+    
+    override open func invalidateIntrinsicContentSize() {
+        var cache = layout.createCache()
+        
+        let proposal = ProposedSize.unspecified
+        
+        let context = LayoutContext(
+            localID: id,
+            subviews: LayoutSubviews { [weak self] id in
+                self?.layoutViews[id]
+            } size: { _ in
+                .zero
+            }
+        )
+        size = layout.sizeThatFits(
+            proposal: proposal,
+            context: context,
+            cache: &cache
+        )
+        super.invalidateIntrinsicContentSize()
     }
 }

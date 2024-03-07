@@ -15,11 +15,9 @@ public class CollectionView: UICollectionView {
     }
     
     public func reload<L: CollectionLayout>(@LayoutBuilder items: () -> L) {
-        let items = items()
+        let items = items().layout
         layout.layout = AnyCollectionLayout(items)
-        var visitor = CollectViewCellsVisitor()
-        items.makeItems(visitor: &visitor, localID: NoneID())
-        loader.reload(cells: visitor.cells, completion: nil)
+        loader.reload(cells: items.makeItems(localID: NoneID()), completion: nil)
     }
     
     override public func layoutSubviews() {
@@ -27,6 +25,52 @@ public class CollectionView: UICollectionView {
         if lastSize != frame.size, window != nil {
             lastSize = frame.size
             layout.invalidateLayout()
+        }
+    }
+}
+
+import SwiftUI
+
+struct CollectionViewRepresentable<L: CollectionLayout>: UIViewRepresentable {
+
+    let layout: L
+    
+    init(@LayoutBuilder layout: () -> L) {
+        self.layout = layout()
+    }
+    
+    func makeUIView(context: Context) -> CollectionView {
+        CollectionView()
+    }
+
+    func updateUIView(_ uiView: CollectionView, context: Context) {
+        uiView.reload {
+            layout
+        }
+    }
+}
+
+enum CollectionViewPreview: PreviewProvider {
+    
+    static var previews: some View {
+        CollectionViewRepresentable {
+            HLayout(spacing: 10) {
+                ForEachLayout(0..<10) { i in
+                    ViewCell {
+                        UILabel()
+                    } render: { label in
+//                        label.textColor = .white
+                        label.backgroundColor = .green
+                        label.textAlignment = .center
+                        label.text = "Text \(i)"
+                    }
+                    .size(100)
+                }
+//                .background {
+//                    UIColor.blue
+//                }
+            }
+            .height(100)
         }
     }
 }

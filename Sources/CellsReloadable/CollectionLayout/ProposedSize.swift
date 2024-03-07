@@ -33,7 +33,7 @@ extension ProposedSize {
     init(
         _ axis: NSLayoutConstraint.Axis,
         _ value: Double?,
-        other: Double?
+        _ other: Double?
     ) {
         switch axis {
         case .horizontal: self.init(width: value, height: other)

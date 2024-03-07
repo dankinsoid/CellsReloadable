@@ -1,6 +1,30 @@
 import UIKit
 
 public protocol CollectionLayout {
+    
+    associatedtype Body: CollectionLayout
+    associatedtype Layout: CustomCollectionLayout = Body.Layout
+    
+    @LayoutBuilder
+    var body: Body { get }
+    var layout: Self.Layout { get }
+}
+
+extension CollectionLayout where Layout == Body.Layout {
+    
+    public var layout: Body.Layout {
+        body.layout
+    }
+}
+
+extension CollectionLayout where Layout == Self {
+    
+    public var layout: Self {
+        self
+    }
+}
+
+public protocol CustomCollectionLayout: CollectionLayout where Layout == Self {
 
     associatedtype Cache = Void
 
@@ -9,10 +33,10 @@ public protocol CollectionLayout {
     func createCache() -> Cache
 
     func sizeThatFits(
-        proposal: ProposedSize,
+        proposal size: ProposedSize,
         context: LayoutContext,
         cache: inout Cache
-    ) -> CGSize
+    ) -> ProposedSize
 
     func placeSubviews(
         in bounds: CGRect,
@@ -21,24 +45,66 @@ public protocol CollectionLayout {
         place: (ViewCell, CGRect) -> Void
     )
     
-    func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable)
-    func makeLayouts(visitor: inout some LayoutVisitor, localID: some Hashable)
+    func makeItems(localID: some Hashable) -> [ViewCell]
+    func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout]
 }
 
-extension CollectionLayout {
+extension CustomCollectionLayout {
 
     public var properties: LayoutProperties { LayoutProperties() }
 }
 
-extension CollectionLayout where Cache == Void {
+extension CustomCollectionLayout where Cache == Void {
     
     public func createCache() -> Void {
     }
 }
 
-extension CollectionLayout {
+extension CollectionLayout where Body == Never, Self: CustomCollectionLayout {
     
-    public func makeLayouts(visitor: inout some LayoutVisitor, localID: some Hashable) {
-        visitor.visit(with: self)
+    /// A non-existent body.
+    ///
+    /// > Warning: Do not invoke this property directly. It will trigger a fatal error at runtime.
+    @_transparent
+    public var body: Body {
+        fatalError(
+      """
+      '\(Self.self)' has no body. …
+      
+      Do not access a reducer's 'body' property directly, as it may not exist.
+      """
+        )
+    }
+}
+
+extension Never: CollectionLayout {
+    
+    public struct Layout: CustomCollectionLayout {
+        
+        public typealias Layout = Never.Layout
+        public typealias Body = Never
+        
+        public func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout ()) -> ProposedSize {
+            .zero
+        }
+    
+        public func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout (), place: (ViewCell, CGRect) -> Void) {
+        }
+        
+        public func makeItems(localID: some Hashable) -> [ViewCell] {
+            []
+        }
+        
+        public func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+            []
+        }
+        
+        public var layout: Never.Layout {
+            self
+        }
+    }
+    
+    public var layout: Layout {
+        Layout()
     }
 }

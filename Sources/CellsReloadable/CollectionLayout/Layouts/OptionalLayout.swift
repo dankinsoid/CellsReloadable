@@ -1,10 +1,13 @@
 import Foundation
 
 extension Optional: CollectionLayout where Wrapped: CollectionLayout {
+}
+
+extension Optional: CustomCollectionLayout where Wrapped: CollectionLayout {
     
-    public func sizeThatFits(proposal: ProposedSize, context: LayoutContext, cache: inout Wrapped.Cache?) -> CGSize {
+    public func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout Wrapped.Layout.Cache?) -> ProposedSize {
         if let self, var wrappedCache = cache {
-            let result = self.sizeThatFits(proposal: proposal, context: context, cache: &wrappedCache)
+            let result = self.layout.sizeThatFits(proposal: size, context: context, cache: &wrappedCache)
             cache = wrappedCache
             return result
         } else {
@@ -12,22 +15,22 @@ extension Optional: CollectionLayout where Wrapped: CollectionLayout {
         }
     }
     
-    public func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout Wrapped.Cache?, place: (ViewCell, CGRect) -> Void) {
+    public func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout Wrapped.Layout.Cache?, place: (ViewCell, CGRect) -> Void) {
         if let self, var wrappedCache = cache {
-            self.placeSubviews(in: bounds, context: context, cache: &wrappedCache, place: place)
+            self.layout.placeSubviews(in: bounds, context: context, cache: &wrappedCache, place: place)
             cache = wrappedCache
         }
     }
     
-    public func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
-        self?.makeItems(visitor: &visitor, localID: localID)
+    public func makeItems(localID: some Hashable) -> [ViewCell] {
+        self?.layout.makeItems(localID: localID) ?? []
     }
     
-    public func makeLayouts(visitor: inout some LayoutVisitor, localID: some Hashable) {
-        self?.makeLayouts(visitor: &visitor, localID: localID)
+    public func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+        self?.layout.makeLayouts(localID: localID) ?? []
     }
     
-    public func createCache() -> Wrapped.Cache? {
-        self?.createCache()
+    public func createCache() -> Wrapped.Layout.Cache? {
+        self?.layout.createCache()
     }
 }

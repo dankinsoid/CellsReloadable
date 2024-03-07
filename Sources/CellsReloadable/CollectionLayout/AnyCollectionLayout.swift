@@ -1,32 +1,33 @@
 import UIKit
 
-public struct AnyCollectionLayout: CollectionLayout {
+public struct AnyCollectionLayout: CustomCollectionLayout {
     
     private let _createCache: () -> Any
-    private let _sizeThatFits: (ProposedSize, LayoutContext, inout Any) -> CGSize
+    private let _sizeThatFits: (ProposedSize, LayoutContext, inout Any) -> ProposedSize
     private let _placeSubviews: (CGRect, LayoutContext, inout Any, (ViewCell, CGRect) -> Void) -> Void
-    private let _makeItems: (inout AnyViewCellsVisitor, AnyHashable) -> Void
-    private let _makeLayouts: (inout AnyLayoutVisitor, AnyHashable) -> Void
+    private let _makeItems: (AnyHashable) -> [ViewCell]
+    private let _makeLayouts: (AnyHashable) -> [AnyCollectionLayout]
     public let properties: LayoutProperties
     
     public init<L: CollectionLayout>(_ layout: L) {
+        let layout = layout.layout
         _createCache = layout.createCache
         _sizeThatFits = {
-            guard var cache = $2 as? L.Cache else { return .zero }
+            guard var cache = $2 as? L.Layout.Cache else { return .zero }
             let result = layout.sizeThatFits(proposal: $0, context: $1, cache: &cache)
             $2 = cache
             return result
         }
         _placeSubviews = {
-            guard var cache = $2 as? L.Cache else { return }
+            guard var cache = $2 as? L.Layout.Cache else { return }
             layout.placeSubviews(in: $0, context: $1, cache: &cache, place: $3)
             $2 = cache
         }
         _makeItems = {
-            layout.makeItems(visitor: &$0, localID: $1)
+            layout.makeItems(localID: $0)
         }
         _makeLayouts = {
-            layout.makeLayouts(visitor: &$0, localID: $1)
+            layout.makeLayouts(localID: $0)
         }
         properties = layout.properties
     }
@@ -36,11 +37,11 @@ public struct AnyCollectionLayout: CollectionLayout {
     }
     
     public func sizeThatFits(
-        proposal: ProposedSize,
+        proposal size: ProposedSize,
         context: LayoutContext,
         cache: inout Any
-    ) -> CGSize {
-        _sizeThatFits(proposal, context, &cache)
+    ) -> ProposedSize {
+        _sizeThatFits(size, context, &cache)
     }
     
     public func placeSubviews(
@@ -52,39 +53,11 @@ public struct AnyCollectionLayout: CollectionLayout {
         _placeSubviews(bounds, context, &cache, place)
     }
     
-    public func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
-        var anyVisitor = AnyViewCellsVisitor(visitor)
-        _makeItems(&anyVisitor, localID)
+    public func makeItems(localID: some Hashable) -> [ViewCell] {
+        _makeItems(localID)
     }
     
-    public func makeLayouts(visitor: inout some LayoutVisitor, localID: some Hashable) {
-        var anyVisitor = AnyLayoutVisitor(visitor)
-        _makeLayouts(&anyVisitor, localID)
-    }
-}
-
-private struct AnyViewCellsVisitor: ViewCellsVisitor {
-    
-    private var visitor: any ViewCellsVisitor
-    
-    init(_ visitor: any ViewCellsVisitor) {
-        self.visitor = visitor
-    }
-    
-    mutating func visit(with cells: [ViewCell]) {
-        visitor.visit(with: cells)
-    }
-}
-
-private struct AnyLayoutVisitor: LayoutVisitor {
-    
-    private var visitor: any LayoutVisitor
-    
-    init(_ visitor: any LayoutVisitor) {
-        self.visitor = visitor
-    }
-    
-    mutating func visit(with layout: some CollectionLayout) {
-        visitor.visit(with: layout)
+    public func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+        _makeLayouts(localID)
     }
 }

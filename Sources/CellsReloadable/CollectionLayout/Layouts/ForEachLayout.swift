@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ForEachLayout<Data: Sequence, ID: Hashable, Content: CollectionLayout>: CollectionLayout {
+public struct ForEachLayout<Data: Sequence, ID: Hashable, Content: CollectionLayout>: CustomCollectionLayout {
     
     public let data: Data
     public let getID: (Data.Element) -> ID
@@ -12,13 +12,13 @@ public struct ForEachLayout<Data: Sequence, ID: Hashable, Content: CollectionLay
         self.content = content
     }
     
-    public func sizeThatFits(proposal: ProposedSize, context: LayoutContext, cache: inout Cache) -> CGSize {
+    public func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout Cache) -> ProposedSize {
         .zero
     }
     
     public func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout Cache, place: (ViewCell, CGRect) -> Void) {
         data.enumerated().forEach {
-            content($0.element)
+            content($0.element).layout
                 .placeSubviews(
                     in: bounds,
                     context: context.with(id: id(for: $0.element, id: context.localID)),
@@ -27,26 +27,28 @@ public struct ForEachLayout<Data: Sequence, ID: Hashable, Content: CollectionLay
                 )
         }
     }
-    
-    public func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
-        data.forEach {
-            content($0).makeItems(visitor: &visitor, localID: id(for: $0, id: localID))
+
+    public func makeItems(localID: some Hashable) -> [ViewCell] {
+        data.flatMap {
+            content($0).layout
+                .makeItems(localID: id(for: $0, id: localID))
         }
     }
-    
-    public func makeLayouts(visitor: inout some LayoutVisitor, localID: some Hashable) {
-        data.forEach {
-            content($0).makeLayouts(visitor: &visitor, localID: id(for: $0, id: localID))
+
+    public func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+        data.flatMap {
+            content($0).layout
+                .makeLayouts(localID: id(for: $0, id: localID))
         }
     }
     
     public func createCache() -> Cache {
-        Cache(caches: data.map { content($0).createCache() })
+        Cache(caches: data.map { content($0).layout.createCache() })
     }
     
     public struct Cache {
         
-        var caches: [Content.Cache]
+        var caches: [Content.Layout.Cache]
     }
     
     private func id(for element: Data.Element, id: AnyHashable) -> AnyHashable {

@@ -2,21 +2,27 @@ import UIKit
 
 public extension CollectionLayout {
     
-    func background<L: CollectionLayout>(_ background: () -> L) -> some CollectionLayout {
-        BackgroundLayout(base: self, background: background())
+    func background<L: CollectionLayout>(@LayoutBuilder _ background: () -> L) -> some CollectionLayout {
+        BackgroundLayout(base: layout, background: background().layout)
     }
 }
 
-private struct BackgroundLayout<Base: CollectionLayout, Background: CollectionLayout>: CollectionLayout {
+private struct BackgroundLayout<Base: CustomCollectionLayout, Background: CustomCollectionLayout>: CustomCollectionLayout {
     
     let base: Base
     let background: Background
+    
+    init(base: Base, background: Background) {
+        self.base = base
+        self.background = background
+    }
+    
     var properties: LayoutProperties {
         base.properties
     }
     
-    func sizeThatFits(proposal: ProposedSize, context: LayoutContext, cache: inout Cache) -> CGSize {
-        base.sizeThatFits(proposal: proposal, context: context, cache: &cache.base)
+    func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout Cache) -> ProposedSize {
+        base.sizeThatFits(proposal: size, context: context, cache: &cache.base)
     }
     
     func placeSubviews(in bounds: CGRect, context: LayoutContext, cache: inout Cache, place: (ViewCell, CGRect) -> Void) {
@@ -27,12 +33,23 @@ private struct BackgroundLayout<Base: CollectionLayout, Background: CollectionLa
     func createCache() -> Cache {
         Cache(base: base.createCache(), background: background.createCache())
     }
-    
-    func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
-        background.makeItems(visitor: &visitor, localID: Self.backgroundID(for: localID))
-        base.makeItems(visitor: &visitor, localID: Self.baseID(for: localID))
+
+    func makeItems(localID: some Hashable) -> [ViewCell] {
+        background.makeItems(localID: Self.backgroundID(for: localID)) +
+        base.makeItems(localID: Self.baseID(for: localID))
     }
-    
+
+    func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+        base.makeLayouts(localID: Self.baseID(for: localID)).map {
+            AnyCollectionLayout(
+                BackgroundLayout<AnyCollectionLayout, Background>(
+                    base: $0,
+                    background: background
+                )
+            )
+        }
+    }
+
     private static func backgroundID(for id: AnyHashable) -> AnyHashable {
         UnionID(id, \BackgroundLayout.background)
     }
@@ -43,7 +60,7 @@ private struct BackgroundLayout<Base: CollectionLayout, Background: CollectionLa
     
     struct Cache {
         
-        var base: Base.Cache
-        var background: Background.Cache
+        var base: Base.Layout.Cache
+        var background: Background.Layout.Cache
     }
 }

@@ -1,11 +1,16 @@
 import Foundation
 
-struct PairLayout<L: CollectionLayout, R: CollectionLayout>: CollectionLayout {
+struct PairLayout<L: CollectionLayout, R: CollectionLayout>: CustomCollectionLayout {
 
-    let l: L
-    let r: R
+    let l: L.Layout
+    let r: R.Layout
+    
+    init(l: L, r: R) {
+        self.l = l.layout
+        self.r = r.layout
+    }
 
-    func sizeThatFits(proposal: ProposedSize, context: LayoutContext, cache: inout Cache) -> CGSize {
+    func sizeThatFits(proposal size: ProposedSize, context: LayoutContext, cache: inout Cache) -> ProposedSize {
         .zero
     }
 
@@ -20,24 +25,24 @@ struct PairLayout<L: CollectionLayout, R: CollectionLayout>: CollectionLayout {
 
     struct Cache {
 
-        var l: L.Cache
-        var r: R.Cache
+        var l: L.Layout.Cache
+        var r: R.Layout.Cache
     }
 
-    func makeItems(visitor: inout some ViewCellsVisitor, localID: some Hashable) {
-        l.makeItems(visitor: &visitor, localID: Self.firstID(for: localID))
-        r.makeItems(visitor: &visitor, localID: Self.secondID(for: localID))
+    func makeItems(localID: some Hashable) -> [ViewCell] {
+        l.makeItems(localID: Self.firstID(for: localID)) +
+        r.makeItems(localID: Self.secondID(for: localID))
     }
 
-    func makeLayouts(visitor: inout some LayoutVisitor, localID: some Hashable) {
-        l.makeLayouts(visitor: &visitor, localID: Self.firstID(for: localID))
-        r.makeLayouts(visitor: &visitor, localID: Self.secondID(for: localID))
+    func makeLayouts(localID: some Hashable) -> [AnyCollectionLayout] {
+        l.makeLayouts(localID: Self.firstID(for: localID)) +
+        r.makeLayouts(localID: Self.secondID(for: localID))
     }
-    
+
     static func firstID(for id: AnyHashable) -> AnyHashable {
         UnionID(id, \Self.l)
     }
-    
+
     static func secondID(for id: AnyHashable) -> AnyHashable {
         UnionID(id, \Self.r)
     }
