@@ -243,7 +243,7 @@ public extension UITableView {
 
     func dequeueReloadReusableCell(with item: ViewCell, for indexPath: IndexPath) -> UITableViewCell {
         registerIfNeeded(cell: item)
-        guard let cellView = dequeueReusableCell(withIdentifier: item.typeIdentifier, for: indexPath) as? AnyTableViewCell else {
+        guard let cellView = dequeueReusableCell(withIdentifier: item.reuseIdentifier, for: indexPath) as? AnyTableViewCell else {
             return UITableViewCell()
         }
         cellView.reload(cell: item)
@@ -252,7 +252,7 @@ public extension UITableView {
 
     func dequeueReloadReusableHeaderFooterView(with item: ViewCell) -> UITableViewHeaderFooterView? {
         registerIfNeeded(headerFooter: item)
-        let headerFooter = dequeueReusableHeaderFooterView(withIdentifier: item.typeIdentifier)
+        let headerFooter = dequeueReusableHeaderFooterView(withIdentifier: item.reuseIdentifier)
         guard let anyHeaderFooter = headerFooter as? AnyTableHeaderFooterView else { return headerFooter }
         anyHeaderFooter.reload(cell: item)
         return anyHeaderFooter
@@ -347,15 +347,15 @@ private extension UITableViewReloader {
 private extension UITableView {
 
     func registerIfNeeded(cell: ViewCell) {
-        guard !registeredCellsIDs.contains(cell.typeIdentifier) else { return }
-        register(AnyTableViewCell.self, forCellReuseIdentifier: cell.typeIdentifier)
-        registeredCellsIDs.insert(cell.typeIdentifier)
+        guard !registeredCellsIDs.contains(cell.reuseIdentifier) else { return }
+        register(AnyTableViewCell.self, forCellReuseIdentifier: cell.reuseIdentifier)
+        registeredCellsIDs.insert(cell.reuseIdentifier)
     }
 
     func registerIfNeeded(headerFooter: ViewCell) {
-        guard !registeredFootersHeadersIDs.contains(headerFooter.typeIdentifier) else { return }
-        register(AnyTableHeaderFooterView.self, forHeaderFooterViewReuseIdentifier: headerFooter.typeIdentifier)
-        registeredFootersHeadersIDs.insert(headerFooter.typeIdentifier)
+        guard !registeredFootersHeadersIDs.contains(headerFooter.reuseIdentifier) else { return }
+        register(AnyTableHeaderFooterView.self, forHeaderFooterViewReuseIdentifier: headerFooter.reuseIdentifier)
+        registeredFootersHeadersIDs.insert(headerFooter.reuseIdentifier)
     }
 
     var registeredCellsIDs: Set<String> {
@@ -398,7 +398,7 @@ private final class AnyTableViewCell: UITableViewCell {
     }
 
     func reload(cell: ViewCell) {
-        guard cell.typeIdentifier == reuseIdentifier else { return }
+        guard cell.reuseIdentifier == reuseIdentifier else { return }
         onReuse = cell.values.willReuse
         onHighlight = cell.values.didHighlight
         let view: UIView
@@ -444,7 +444,7 @@ private final class AnyTableHeaderFooterView: UITableViewHeaderFooterView {
     var onReuse: (UIView) -> Void = { _ in }
 
     func reload(cell: ViewCell) {
-        guard cell.typeIdentifier == reuseIdentifier else { return }
+        guard cell.reuseIdentifier == reuseIdentifier else { return }
         onReuse = cell.values.willReuse
         let view: UIView
         if let cellView {

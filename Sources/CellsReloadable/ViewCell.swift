@@ -7,15 +7,21 @@ public struct ViewCell: Identifiable {
     public var id: AnyHashable
     public var values: Values
     public let type: Any.Type
+    public var reuseIdentifier: String {
+        _reuseIdentifier ?? String(reflecting: type)
+    }
+    private let _reuseIdentifier: String?
 
+    @available(*, deprecated, renamed: "reuseIdentifier")
     public var typeIdentifier: String {
-        String(reflecting: type)
+        reuseIdentifier
     }
 
     public init(
         id: AnyHashable,
         values: ViewCell.Values = ViewCell.Values(),
         type: Any.Type,
+        reuseIdentifier: String? = nil,
         create: @escaping () -> UIView,
         render: @escaping (UIView) -> Void
     ) {
@@ -24,6 +30,7 @@ public struct ViewCell: Identifiable {
         self.render = render
         self.values = values
         self.type = type
+        self._reuseIdentifier = reuseIdentifier
     }
 
     public func createView() -> UIView {
@@ -51,12 +58,14 @@ public extension ViewCell {
 
     init<Cell: UIView>(
         id: AnyHashable = NoneID(),
+        reuseIdentifier: String? = nil,
         create: @escaping () -> Cell,
         render: @escaping (Cell) -> Void = { _ in }
     ) {
         self.init(
             id: id,
-            type: Cell.self
+            type: Cell.self,
+            reuseIdentifier: reuseIdentifier
         ) {
             create()
         } render: { view in
@@ -69,11 +78,13 @@ public extension ViewCell {
 
     init<Cell: UIView>(
         id: AnyHashable = NoneID(),
+        reuseIdentifier: String? = nil,
         _ create: @escaping @autoclosure () -> Cell,
         render: @escaping (Cell) -> Void = { _ in }
     ) {
         self.init(
             id: id,
+            reuseIdentifier: reuseIdentifier,
             create: create,
             render: render
         )
@@ -84,16 +95,18 @@ public extension ViewCell {
 
     init<Cell: View>(
         id: AnyHashable = NoneID(),
+        reuseIdentifier: String? = nil,
         @ViewBuilder view: () -> Cell
     ) {
-        self.init(id: id, view())
+        self.init(id: id, reuseIdentifier: reuseIdentifier, view())
     }
 
     init<Cell: View>(
         id: AnyHashable = NoneID(),
+        reuseIdentifier: String? = nil,
         _ view: Cell
     ) {
-        self.init(id: id) {
+        self.init(id: id, reuseIdentifier: reuseIdentifier) {
             HostingView(view)
         } render: {
             $0.rootView = view
@@ -107,10 +120,12 @@ public extension ViewCell {
     init<Cell: RenderableView>(
         id: AnyHashable = NoneID(),
         with props: Cell.Props,
+        reuseIdentifier: String? = nil,
         create: @escaping () -> Cell
     ) {
         self.init(
             id: id,
+            reuseIdentifier: reuseIdentifier,
             create: create
         ) {
             $0.render(with: props)
@@ -119,11 +134,13 @@ public extension ViewCell {
 
     init<Cell: RenderableView>(
         with props: Cell.Props,
+        reuseIdentifier: String? = nil,
         create: @escaping () -> Cell
     ) where Cell.Props: Identifiable {
         self.init(
             id: props.id,
             with: props,
+            reuseIdentifier: reuseIdentifier,
             create: create
         )
     }
@@ -132,22 +149,26 @@ public extension ViewCell {
     init<Cell: RenderableView>(
         id: AnyHashable = NoneID(),
         _ create: @escaping @autoclosure () -> Cell,
-        with props: Cell.Props
+        with props: Cell.Props,
+        reuseIdentifier: String? = nil
     ) {
         self.init(
             id: id,
             with: props,
+            reuseIdentifier: reuseIdentifier,
             create: create
         )
     }
 
     init<Cell: RenderableView>(
         _ create: @escaping @autoclosure () -> Cell,
-        with props: Cell.Props
+        with props: Cell.Props,
+        reuseIdentifier: String? = nil
     ) where Cell.Props: Identifiable {
         self.init(
             id: props.id,
             with: props,
+            reuseIdentifier: reuseIdentifier,
             create: create
         )
     }

@@ -176,7 +176,7 @@ public extension UICollectionView {
 
     func dequeueReloadReusableCell(with item: ViewCell, for indexPath: IndexPath) -> UICollectionViewCell {
         registerIfNeeded(cell: item)
-        guard let cellView = dequeueReusableCell(withReuseIdentifier: item.typeIdentifier, for: indexPath) as? AnyCollectionViewCell else {
+        guard let cellView = dequeueReusableCell(withReuseIdentifier: item.reuseIdentifier, for: indexPath) as? AnyCollectionViewCell else {
             return UICollectionViewCell()
         }
         cellView.reload(cell: item)
@@ -224,9 +224,9 @@ private extension UICollectionViewReloader {
 private extension UICollectionView {
 
     func registerIfNeeded(cell: ViewCell) {
-        guard !registeredIDs.contains(cell.typeIdentifier) else { return }
-        register(AnyCollectionViewCell.self, forCellWithReuseIdentifier: cell.typeIdentifier)
-        registeredIDs.insert(cell.typeIdentifier)
+        guard !registeredIDs.contains(cell.reuseIdentifier) else { return }
+        register(AnyCollectionViewCell.self, forCellWithReuseIdentifier: cell.reuseIdentifier)
+        registeredIDs.insert(cell.reuseIdentifier)
     }
 
     private var registeredIDs: Set<String> {
@@ -259,7 +259,7 @@ private final class AnyCollectionViewCell: UICollectionViewCell {
     }
 
     func reload(cell: ViewCell) {
-        guard cell.typeIdentifier == reuseIdentifier else { return }
+        guard cell.reuseIdentifier == reuseIdentifier else { return }
         onReuse = cell.values.willReuse
         onHighlight = cell.values.didHighlight
         let view: UIView
