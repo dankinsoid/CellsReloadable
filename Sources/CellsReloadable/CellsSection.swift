@@ -15,7 +15,7 @@ public struct CellsSection: Identifiable {
     }
 
     @_disfavoredOverload
-    public init<Data: Collection>(
+    public init<Data: Swift.Collection>(
         values: CellsSection.Values,
         cells: Data
     ) where Data.Element: ViewCellConvertible {
@@ -47,7 +47,7 @@ public extension CellsSection {
         self.init(id: id, cells: cells())
     }
 
-    init<Data: Collection>(
+    init<Data: Swift.Collection>(
         id: AnyHashable = NoneID(),
         cells: Data
     ) where Data.Element: ViewCellConvertible {
@@ -57,7 +57,7 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Collection, Cell: UIView>(
+    init<Data: Swift.Collection, Cell: UIView>(
         id: AnyHashable = NoneID(),
         data: Data,
         create: @escaping (Data.Element) -> Cell,
@@ -75,7 +75,7 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Collection, Cell: UIView, ID: Hashable>(
+    init<Data: Swift.Collection, Cell: UIView, ID: Hashable>(
         id: AnyHashable = NoneID(),
         data: Data,
         cellID: (Data.Element) -> ID,
@@ -94,7 +94,7 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Collection, ID: Hashable, Cell: UIView>(
+    init<Data: Swift.Collection, ID: Hashable, Cell: UIView>(
         id: AnyHashable = NoneID(),
         data: Data,
         create: @escaping (Data.Element) -> Cell,
@@ -112,7 +112,7 @@ public extension CellsSection {
 
 public extension CellsSection {
 
-    init<Data: Collection>(
+    init<Data: Swift.Collection>(
         id: AnyHashable = NoneID(),
         data: Data,
         @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>
@@ -123,7 +123,7 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Collection, ID: Hashable>(
+    init<Data: Swift.Collection, ID: Hashable>(
         id: AnyHashable = NoneID(),
         data: Data,
         cellID: @escaping (Data.Element) -> ID,
@@ -139,7 +139,7 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Collection, ID: Hashable>(
+    init<Data: Swift.Collection, ID: Hashable>(
         id: AnyHashable = NoneID(),
         data: Data,
         @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>
@@ -157,7 +157,7 @@ public extension CellsSection {
 
     init<Cell: RenderableView, ID: Hashable>(
         id: AnyHashable = NoneID(),
-        data: some Collection<Cell.Props>,
+        data: some Swift.Collection<Cell.Props>,
         cellID: (Cell.Props) -> ID,
         create: @escaping () -> Cell
     ) {
@@ -174,7 +174,7 @@ public extension CellsSection {
 
     init<ID: Hashable, Cell: RenderableView>(
         id: AnyHashable = NoneID(),
-        data: some Collection<Cell.Props>,
+        data: some Swift.Collection<Cell.Props>,
         create: @escaping () -> Cell
     ) where Cell.Props: Identifiable<ID> {
         self.init(
@@ -189,7 +189,7 @@ public extension CellsSection {
 
     init<Cell: RenderableView>(
         id: AnyHashable = NoneID(),
-        data: some Collection<Cell.Props>,
+        data: some Swift.Collection<Cell.Props>,
         create: @escaping () -> Cell
     ) {
         self.init(
