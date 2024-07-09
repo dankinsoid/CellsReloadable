@@ -3,14 +3,14 @@ import Foundation
 public protocol CellsSectionsReloadable: ViewCellsReloadable {
 
     func reload(
-        sections: [CellsSection],
+        sections: LazyArray<CellsSection>,
         completion: (() -> Void)?
     )
 }
 
 public extension ViewCellsReloadable where Self: CellsSectionsReloadable {
 
-    func reload(cells: [ViewCell], completion: (() -> Void)?) {
+    func reload(cells: LazyArray<ViewCell>, completion: (() -> Void)?) {
         reload(sections: [CellsSection(id: 0, cells: cells)], completion: completion)
     }
 }
@@ -18,7 +18,7 @@ public extension ViewCellsReloadable where Self: CellsSectionsReloadable {
 public extension CellsSectionsReloadable {
 
     func reload(
-        @CellsSectionsBuilder _ sections: () -> [CellsSection],
+        @CellsSectionsBuilder _ sections: () -> LazyArray<CellsSection>,
         completion: (() -> Void)? = nil
     ) {
         reload(sections: sections(), completion: completion)
@@ -34,7 +34,7 @@ public extension CellsSectionsReloadable {
         completion: (() -> Void)? = nil
     ) where Data.Element: CellsSectionConvertible {
         reload(
-            sections: (data as? [CellsSection]) ?? data.map(\.asCellsSection),
+            sections: (data as? LazyArray<CellsSection>) ?? LazyArray(data).map(\.asCellsSection),
             completion: completion
         )
     }
@@ -48,6 +48,6 @@ public extension CellsSectionsReloadable {
         sections data: Data,
         completion: (() -> Void)? = nil
     ) where Data.Element == CellsSectionConvertible {
-        reload(sections: data.map(\.asCellsSection), completion: completion)
+        reload(sections: LazyArray(data).map(\.asCellsSection), completion: completion)
     }
 }

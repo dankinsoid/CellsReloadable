@@ -12,7 +12,7 @@ public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
 
     public var defaultRowAnimation: UITableView.DirectionalRowAnimation
 
-    public private(set) var sections: [CellsSection] = []
+    public private(set) var sections: LazyArray<CellsSection> = []
 
     public private(set) weak var tableView: UITableView?
     public weak var tableViewDelegate: UITableViewDelegate?
@@ -40,7 +40,7 @@ public final class UITableViewReloader: NSObject, CellsSectionsReloadable {
         tableView?.reloadData()
     }
 
-    public func reload(sections: [CellsSection], completion: (() -> Void)? = nil) {
+    public func reload(sections: LazyArray<CellsSection>, completion: (() -> Void)? = nil) {
         reloadData(newValue: sections, completion: completion)
     }
 
@@ -282,7 +282,7 @@ private extension UITableViewReloader {
         configureDataSource()
     }
 
-    func reloadData(newValue: [CellsSection], completion: (() -> Void)?) {
+    func reloadData(newValue: LazyArray<CellsSection>, completion: (() -> Void)?) {
         guard let tableView else { return }
         defer { isFirstReload = false }
         indexPathsByID = [:]

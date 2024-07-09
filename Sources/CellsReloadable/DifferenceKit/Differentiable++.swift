@@ -14,7 +14,7 @@ extension ViewCell: Differentiable {
 
 extension CellsSection: DifferentiableSection {
     
-    public var elements: [ViewCell] { cells }
+    public var elements: LazyArray<ViewCell> { cells }
     
     public var differenceIdentifier: AnyHashable {
         id

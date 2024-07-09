@@ -3,7 +3,7 @@ import SwiftUI
 public protocol ViewCellsReloadable {
 
     func reload(
-        cells: [ViewCell],
+        cells: LazyArray<ViewCell>,
         completion: (() -> Void)?
     )
 }
@@ -17,8 +17,8 @@ public extension ViewCellsReloadable {
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
     func reload(
-        @ViewCellsBuilder cells: () -> [ViewCell],
-        map: (ViewCell) -> ViewCell = { $0 },
+        @ViewCellsBuilder cells: () -> LazyArray<ViewCell>,
+        map: @escaping (ViewCell) -> ViewCell = { $0 },
         completion: (() -> Void)? = nil
     ) {
         reload(cells: cells().map(map), completion: completion)
@@ -31,7 +31,7 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Data: Collection>(with cells: Data, completion: (() -> Void)? = nil) where Data.Element: ViewCellConvertible {
         reload(
-            cells: (cells as? [ViewCell]) ?? cells.map(\.asViewCell),
+            cells: (cells as? LazyArray<ViewCell>) ?? LazyArray(cells).map(\.asViewCell),
             completion: completion
         )
     }
@@ -48,11 +48,11 @@ public extension ViewCellsReloadable {
         with data: Data,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void,
-        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
+        map: @escaping (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
         reload(
-            cells: data.map { data in
+            cells: LazyArray(data).map { data in
                 map(
                     ViewCell {
                         create(data)
@@ -77,14 +77,14 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Data: Collection, ID: Hashable, Cell: UIView>(
         with data: Data,
-        id: (Data.Element) -> ID,
+        id: @escaping (Data.Element) -> ID,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void,
-        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
+        map: @escaping (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
         reload(
-            cells: data.map { data in
+            cells: LazyArray(data).map { data in
                 map(
                     ViewCell(id: id(data)) {
                         create(data)
@@ -110,7 +110,7 @@ public extension ViewCellsReloadable {
         with data: Data,
         create: @escaping (Data.Element) -> Cell,
         render: @escaping (Cell, Data.Element) -> Void,
-        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
+        map: @escaping (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) where Data.Element: Identifiable<ID> {
         reload(
@@ -135,8 +135,8 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Data: Collection>(
         with data: Data,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
-        map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
+        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>,
+        map: @escaping (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
         reload(
@@ -159,8 +159,8 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Data: Collection, ID: Hashable>(
         with data: Data,
-        id: (Data.Element) -> ID,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
+        id: @escaping (Data.Element) -> ID,
+        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>,
         map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
@@ -183,7 +183,7 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Data: Collection, ID: Hashable>(
         with data: Data,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
+        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>,
         map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) where Data.Element: Identifiable<ID> {
@@ -209,7 +209,7 @@ public extension ViewCellsReloadable {
     func reload<Cell: RenderableView>(
         with data: some Collection<Cell.Props>,
         create: @escaping () -> Cell,
-        map: (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
+        map: @escaping (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
         reload(with: data) { _ in
@@ -233,9 +233,9 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<ID: Hashable, Cell: RenderableView>(
         with data: some Collection<Cell.Props>,
-        id: (Cell.Props) -> ID,
+        id: @escaping (Cell.Props) -> ID,
         create: @escaping () -> Cell,
-        map: (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
+        map: @escaping (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
         reload(with: data, id: id) { _ in
@@ -259,7 +259,7 @@ public extension ViewCellsReloadable {
     func reload<ID: Hashable, Cell: RenderableView>(
         with data: some Collection<Cell.Props>,
         create: @escaping () -> Cell,
-        map: (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
+        map: @escaping (ViewCell, Cell.Props) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) where Cell.Props: Identifiable<ID> {
         reload(with: data) { _ in

@@ -4,14 +4,22 @@ public struct CellsSection: Identifiable {
 
     public var id: AnyHashable { values.id }
     public var values: CellsSection.Values
-    public let cells: [ViewCell]
+    public let cells: LazyArray<ViewCell>
 
     public init(
         values: CellsSection.Values,
-        cells: [ViewCell]
+        cells: LazyArray<ViewCell>
     ) {
         self.values = values
         self.cells = cells
+    }
+
+    @_disfavoredOverload
+    public init<Data: RandomAccessCollection>(
+        values: CellsSection.Values,
+        cells: Data
+    ) where Data.Element: ViewCellConvertible {
+        self.init(values: values, cells: LazyArray(cells).map(\.asViewCell))
     }
 
     public struct Values: Identifiable {
@@ -34,22 +42,22 @@ public extension CellsSection {
 
     init(
         id: AnyHashable = NoneID(),
-        @ViewCellsBuilder _ cells: () -> [ViewCell]
+        @ViewCellsBuilder _ cells: () -> LazyArray<ViewCell>
     ) {
         self.init(id: id, cells: cells())
     }
 
-    init<Data: Sequence>(
+    init<Data: RandomAccessCollection>(
         id: AnyHashable = NoneID(),
         cells: Data
     ) where Data.Element: ViewCellConvertible {
         self.init(
             values: Values(id: id),
-            cells: (cells as? [ViewCell]) ?? cells.map(\.asViewCell)
+            cells: (cells as? LazyArray<ViewCell>) ?? LazyArray(cells).map(\.asViewCell)
         )
     }
 
-    init<Data: Sequence, Cell: UIView>(
+    init<Data: RandomAccessCollection, Cell: UIView>(
         id: AnyHashable = NoneID(),
         data: Data,
         create: @escaping (Data.Element) -> Cell,
@@ -67,7 +75,7 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Sequence, Cell: UIView, ID: Hashable>(
+    init<Data: RandomAccessCollection, Cell: UIView, ID: Hashable>(
         id: AnyHashable = NoneID(),
         data: Data,
         cellID: (Data.Element) -> ID,
@@ -86,7 +94,7 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Sequence, ID: Hashable, Cell: UIView>(
+    init<Data: RandomAccessCollection, ID: Hashable, Cell: UIView>(
         id: AnyHashable = NoneID(),
         data: Data,
         create: @escaping (Data.Element) -> Cell,
@@ -104,10 +112,10 @@ public extension CellsSection {
 
 public extension CellsSection {
 
-    init<Data: Sequence>(
+    init<Data: RandomAccessCollection>(
         id: AnyHashable = NoneID(),
         data: Data,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
+        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>
     ) {
         self.init(
             id: id,
@@ -115,11 +123,11 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Sequence, ID: Hashable>(
+    init<Data: RandomAccessCollection, ID: Hashable>(
         id: AnyHashable = NoneID(),
         data: Data,
-        cellID: (Data.Element) -> ID,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
+        cellID: @escaping (Data.Element) -> ID,
+        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>
     ) {
         self.init(
             id: id,
@@ -131,10 +139,10 @@ public extension CellsSection {
         )
     }
 
-    init<Data: Sequence, ID: Hashable>(
+    init<Data: RandomAccessCollection, ID: Hashable>(
         id: AnyHashable = NoneID(),
         data: Data,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
+        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>
     ) where Data.Element: Identifiable<ID> {
         self.init(
             id: id,
@@ -149,7 +157,7 @@ public extension CellsSection {
 
     init<Cell: RenderableView, ID: Hashable>(
         id: AnyHashable = NoneID(),
-        data: some Sequence<Cell.Props>,
+        data: some RandomAccessCollection<Cell.Props>,
         cellID: (Cell.Props) -> ID,
         create: @escaping () -> Cell
     ) {
@@ -166,7 +174,7 @@ public extension CellsSection {
 
     init<ID: Hashable, Cell: RenderableView>(
         id: AnyHashable = NoneID(),
-        data: some Sequence<Cell.Props>,
+        data: some RandomAccessCollection<Cell.Props>,
         create: @escaping () -> Cell
     ) where Cell.Props: Identifiable<ID> {
         self.init(
@@ -181,7 +189,7 @@ public extension CellsSection {
 
     init<Cell: RenderableView>(
         id: AnyHashable = NoneID(),
-        data: some Sequence<Cell.Props>,
+        data: some RandomAccessCollection<Cell.Props>,
         create: @escaping () -> Cell
     ) {
         self.init(

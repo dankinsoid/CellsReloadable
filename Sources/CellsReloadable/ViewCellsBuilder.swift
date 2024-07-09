@@ -3,32 +3,32 @@ import SwiftUI
 @resultBuilder
 public enum ViewCellsBuilder {
 
-    public static func buildBlock(_ components: [ViewCell]...) -> [ViewCell] {
-        Array(components.joined())
+    public static func buildBlock(_ components: LazyArray<ViewCell>...) -> LazyArray<ViewCell> {
+        LazyArray(components.joined())
     }
 
     @inlinable
-    public static func buildArray(_ components: [[ViewCell]]) -> [ViewCell] {
-        Array(components.joined())
+    public static func buildArray(_ components: [LazyArray<ViewCell>]) -> LazyArray<ViewCell> {
+        LazyArray(components.joined())
     }
 
     @inlinable
-    public static func buildEither(first component: [ViewCell]) -> [ViewCell] {
+    public static func buildEither(first component: LazyArray<ViewCell>) -> LazyArray<ViewCell> {
         component
     }
 
     @inlinable
-    public static func buildEither(second component: [ViewCell]) -> [ViewCell] {
+    public static func buildEither(second component: LazyArray<ViewCell>) -> LazyArray<ViewCell> {
         component
     }
 
     @inlinable
-    public static func buildOptional(_ component: [ViewCell]?) -> [ViewCell] {
+    public static func buildOptional(_ component: LazyArray<ViewCell>?) -> LazyArray<ViewCell> {
         component ?? []
     }
 
     @inlinable
-    public static func buildLimitedAvailability(_ component: [ViewCell]) -> [ViewCell] {
+    public static func buildLimitedAvailability(_ component: LazyArray<ViewCell>) -> LazyArray<ViewCell> {
         component
     }
 
@@ -38,7 +38,7 @@ public enum ViewCellsBuilder {
         fileID: String = #fileID,
         line: UInt = #line,
         column: UInt = #column
-    ) -> [ViewCell] {
+    ) -> LazyArray<ViewCell> {
         [expression.updateIDIfNeeded(id: CodeID(fileID: fileID, line: line, column: column))]
     }
 
@@ -48,12 +48,12 @@ public enum ViewCellsBuilder {
         fileID: String = #fileID,
         line: UInt = #line,
         column: UInt = #column
-    ) -> [ViewCell] {
+    ) -> LazyArray<ViewCell> {
         [expression.updateIDIfNeeded(id: CodeID(fileID: fileID, line: line, column: column))]
     }
 
     @inlinable
-    public static func buildExpression<T: View>(_ expression: T, fileID: String = #fileID, line: UInt = #line, column: UInt = #column) -> [ViewCell] {
+    public static func buildExpression<T: View>(_ expression: T, fileID: String = #fileID, line: UInt = #line, column: UInt = #column) -> LazyArray<ViewCell> {
         buildExpression(
             ViewCell(id: CodeID(fileID: fileID, line: line, column: column)) {
                 expression
@@ -62,12 +62,12 @@ public enum ViewCellsBuilder {
     }
 
     @inlinable
-    public static func buildExpression<C: Sequence>(_ expression: C) -> [ViewCell] where C.Element: ViewCellConvertible {
-        (expression as? [ViewCell]) ?? expression.map(\.asViewCell)
+    public static func buildExpression<C: Collection>(_ expression: C) -> LazyArray<ViewCell> where C.Element: ViewCellConvertible {
+        (expression as? LazyArray<ViewCell>) ?? LazyArray(expression).map(\.asViewCell)
     }
 
     @inlinable
-    public static func buildExpression<C: Sequence>(_ expression: C) -> [ViewCell] where C.Element == any ViewCellConvertible {
-        expression.map(\.asViewCell)
+    public static func buildExpression<C: Collection>(_ expression: C) -> LazyArray<ViewCell> where C.Element == any ViewCellConvertible {
+        LazyArray(expression).map(\.asViewCell)
     }
 }

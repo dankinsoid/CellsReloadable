@@ -3,7 +3,7 @@ import UIKit
 extension UIStackView: ViewCellsReloadable {
 
     public func reload(
-        cells: [ViewCell],
+        cells: LazyArray<ViewCell>,
         completion: (() -> Void)?
     ) {
         var subviews = arrangedSubviews
@@ -39,7 +39,7 @@ extension UIStackView: ViewCellsReloadable {
 
 extension UIStackView: CellsSectionsReloadable {
 
-    public func reload(sections: [CellsSection], completion: (() -> Void)?) {
+    public func reload(sections: LazyArray<CellsSection>, completion: (() -> Void)?) {
         if sections.count == 1 {
             configure(with: sections[0].values.stack)
             reload(cells: sections[0].cells, completion: completion)

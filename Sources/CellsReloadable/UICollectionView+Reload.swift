@@ -15,7 +15,7 @@ public final class UICollectionViewReloader: NSObject, CellsSectionsReloadable {
         }
     }
 
-    public private(set) var sections: [CellsSection] = []
+    public private(set) var sections: LazyArray<CellsSection> = []
     public private(set) weak var collectionView: UICollectionView?
     public weak var collectionViewDelegate: UICollectionViewDelegate?
     
@@ -42,7 +42,7 @@ public final class UICollectionViewReloader: NSObject, CellsSectionsReloadable {
         collectionView?.reloadData()
     }
 
-    public func reload(sections: [CellsSection], completion: (() -> Void)? = nil) {
+    public func reload(sections: LazyArray<CellsSection>, completion: (() -> Void)? = nil) {
         reloadData(newValue: sections, completion: completion)
     }
 
@@ -195,7 +195,7 @@ private extension UICollectionViewReloader {
         configureDataSource()
     }
 
-    func reloadData(newValue: [CellsSection], completion: (() -> Void)? = nil) {
+    func reloadData(newValue: LazyArray<CellsSection>, completion: (() -> Void)? = nil) {
         guard let collectionView else { return }
         defer { isFirstReload = false }
         indexPathsByID = [:]
