@@ -3,32 +3,32 @@ import SwiftUI
 @resultBuilder
 public enum CellsSectionsBuilder {
 
-    public static func buildBlock(_ components: LazyArray<CellsSection>...) -> LazyArray<CellsSection> {
-        LazyArray(components.joined())
+    public static func buildBlock(_ components: [CellsSection]...) -> [CellsSection] {
+        Array(components.joined())
     }
 
     @inlinable
-    public static func buildArray(_ components: [LazyArray<CellsSection>]) -> LazyArray<CellsSection> {
-        LazyArray(components.joined())
+    public static func buildArray(_ components: [[CellsSection]]) -> [CellsSection] {
+        Array(components.joined())
     }
 
     @inlinable
-    public static func buildEither(first component: LazyArray<CellsSection>) -> LazyArray<CellsSection> {
+    public static func buildEither(first component: [CellsSection]) -> [CellsSection] {
         component
     }
 
     @inlinable
-    public static func buildEither(second component: LazyArray<CellsSection>) -> LazyArray<CellsSection> {
+    public static func buildEither(second component: [CellsSection]) -> [CellsSection] {
         component
     }
 
     @inlinable
-    public static func buildOptional(_ component: LazyArray<CellsSection>?) -> LazyArray<CellsSection> {
+    public static func buildOptional(_ component: [CellsSection]?) -> [CellsSection] {
         component ?? []
     }
 
     @inlinable
-    public static func buildLimitedAvailability(_ component: LazyArray<CellsSection>) -> LazyArray<CellsSection> {
+    public static func buildLimitedAvailability(_ component: [CellsSection]) -> [CellsSection] {
         component
     }
 
@@ -38,7 +38,7 @@ public enum CellsSectionsBuilder {
         fileID: String = #fileID,
         line: UInt = #line,
         column: UInt = #column
-    ) -> LazyArray<CellsSection> {
+    ) -> [CellsSection] {
         [expression.updateIDIfNeeded(id: CodeID(fileID: fileID, line: line, column: column))]
     }
 
@@ -48,7 +48,7 @@ public enum CellsSectionsBuilder {
         fileID: String = #fileID,
         line: UInt = #line,
         column: UInt = #column
-    ) -> LazyArray<CellsSection> {
+    ) -> [CellsSection] {
         [expression.updateIDIfNeeded(id: CodeID(fileID: fileID, line: line, column: column))]
     }
 }

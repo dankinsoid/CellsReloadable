@@ -127,7 +127,7 @@ public extension CellsSection {
         id: AnyHashable = NoneID(),
         data: Data,
         cellID: @escaping (Data.Element) -> ID,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
     ) {
         self.init(
             id: id,
@@ -142,7 +142,7 @@ public extension CellsSection {
     init<Data: Swift.Collection, ID: Hashable>(
         id: AnyHashable = NoneID(),
         data: Data,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell]
     ) where Data.Element: Identifiable<ID> {
         self.init(
             id: id,

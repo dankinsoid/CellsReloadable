@@ -17,11 +17,11 @@ public extension ViewCellsReloadable {
     ///   - map: The block to add values to each cell.
     ///   - completion: The block to execute after the reload operation completes.
     func reload(
-        @ViewCellsBuilder cells: () -> LazyArray<ViewCell>,
+        @ViewCellsBuilder cells: () -> [ViewCell],
         map: @escaping (ViewCell) -> ViewCell = { $0 },
         completion: (() -> Void)? = nil
     ) {
-        reload(cells: cells().map(map), completion: completion)
+        reload(cells: LazyArray(cells()).map(map), completion: completion)
     }
 
     /// Reloads the collection view with the specified cells.
@@ -135,7 +135,7 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Data: Collection>(
         with data: Data,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>,
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
         map: @escaping (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
@@ -160,7 +160,7 @@ public extension ViewCellsReloadable {
     func reload<Data: Collection, ID: Hashable>(
         with data: Data,
         id: @escaping (Data.Element) -> ID,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>,
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
         map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) {
@@ -183,7 +183,7 @@ public extension ViewCellsReloadable {
     ///   - completion: The block to execute after the reload operation completes.
     func reload<Data: Collection, ID: Hashable>(
         with data: Data,
-        @ViewCellsBuilder create: @escaping (Data.Element) -> LazyArray<ViewCell>,
+        @ViewCellsBuilder create: @escaping (Data.Element) -> [ViewCell],
         map: (ViewCell, Data.Element) -> ViewCell = { cell, _ in cell },
         completion: (() -> Void)? = nil
     ) where Data.Element: Identifiable<ID> {

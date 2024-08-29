@@ -18,10 +18,10 @@ public extension ViewCellsReloadable where Self: CellsSectionsReloadable {
 public extension CellsSectionsReloadable {
 
     func reload(
-        @CellsSectionsBuilder _ sections: () -> LazyArray<CellsSection>,
+        @CellsSectionsBuilder _ sections: () -> [CellsSection],
         completion: (() -> Void)? = nil
     ) {
-        reload(sections: sections(), completion: completion)
+        reload(sections: LazyArray(sections()), completion: completion)
     }
 
     /// Reloads the collection view with the specified cells.
