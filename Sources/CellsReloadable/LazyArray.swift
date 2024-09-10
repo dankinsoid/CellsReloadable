@@ -1,7 +1,7 @@
 import Foundation
 
 /// A collection that lazily creates its elements.
-public struct LazyArray<Element>: RangeReplaceableCollection {
+public struct LazyArray<Element>: RangeReplaceableCollection, RandomAccessCollection {
 
     public var startIndex: Int { 0 }
     public var endIndex: Int { _count() }
@@ -30,7 +30,7 @@ public struct LazyArray<Element>: RangeReplaceableCollection {
         self._element = element
     }
 
-    public init<Data: Collection>(
+    public init<Data: RandomAccessCollection>(
         _ data: Data
     ) where Data.Element == Element {
         self.init(
