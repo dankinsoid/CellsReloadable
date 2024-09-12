@@ -111,27 +111,3 @@ extension LazyArray: Encodable where Element: Encodable {
         }
     }
 }
-
-extension LazyArray: Equatable where Element: Equatable {
-
-    public static func == (lhs: LazyArray<Element>, rhs: LazyArray<Element>) -> Bool {
-        guard lhs._count() == rhs._count() else {
-            return false
-        }
-        for index in 0 ..< lhs._count() {
-            guard lhs._element(index) == rhs._element(index) else {
-                return false
-            }
-        }
-        return true
-    }
-}
-
-extension LazyArray: Hashable where Element: Hashable {
-
-    public func hash(into hasher: inout Hasher) {
-        for index in 0 ..< _count() {
-            hasher.combine(_element(index))
-        }
-    }
-}
